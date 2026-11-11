@@ -105,14 +105,22 @@
         <canvas id="monthlyChart"></canvas>
       </div>
     </div>
+
+    <h3 class="section-header" style="margin-top:24px;">Residents by Sector</h3>
+    <div id="residentSectorCounts" class="cards"></div>
   </div>
 
   <!-- ==================== REQUESTS ==================== -->
   <div id="section-requests" class="page-section">
     <h3 class="section-header">All Service Requests</h3>
 
+    <div id="requestSummaryCards" class="cards request-summary-cards"></div>
+
+    <div class="filters request-search">
+      <input id="reqSearch" type="search" placeholder="Search by resident, contact, address, purpose, or request ID..." oninput="filterRequests()">
+    </div>
+
     <div class="filters">
-      <input id="reqSearch" placeholder="Search by name, service, or ID..." oninput="filterRequests()">
       <select id="reqStatusFilter" onchange="filterRequests()">
         <option value="all">All Statuses</option>
         <option value="Pending">Pending</option>
@@ -121,6 +129,25 @@
         <option value="Completed">Completed</option>
         <option value="Rejected">Rejected</option>
       </select>
+      <select id="reqServiceFilter" aria-label="Filter requests by service" onchange="filterRequests()">
+        <option value="">All Services</option>
+      </select>
+      <select id="reqBarangayFilter" aria-label="Filter requests by barangay" onchange="filterRequests()">
+        <option value="">All Barangays</option>
+      </select>
+      <select id="reqSectorFilter" aria-label="Filter requests by resident sector" onchange="filterRequests()">
+        <option value="">All Resident Sectors</option>
+      </select>
+      <select id="reqVerificationFilter" aria-label="Filter requests by document verification" onchange="filterRequests()">
+        <option value="">All Document Verification Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Verified">Verified</option>
+        <option value="Invalid">Invalid</option>
+        <option value="Not Submitted">Not Submitted</option>
+      </select>
+      <input id="reqDateFrom" type="date" aria-label="Requests from date" onchange="filterRequests()">
+      <input id="reqDateTo" type="date" aria-label="Requests to date" onchange="filterRequests()">
+      <button type="button" class="action-btn" onclick="clearRequestFilters()">Clear Filters</button>
     </div>
 
     <div class="table-container">
@@ -515,7 +542,7 @@
 <div id="residentReviewOverlay"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
             z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:680px;
               max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);
               animation:rrPop .25s cubic-bezier(.34,1.2,.64,1);">
 
@@ -527,7 +554,7 @@
                     display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><line x1="13" y1="10" x2="19" y2="10"/><line x1="13" y1="14" x2="17" y2="14"/></svg></div>
         <div>
           <h3 style="margin:0;font-size:16px;font-weight:700;color:#111827;">Resident Registration Review</h3>
-          <p style="margin:0;font-size:12px;color:#6b7280;">Verify the details and ID before approving</p>
+          <p style="margin:0;font-size:12px;color:#6b7280;">Verify the details, resident sectors, and ID before approving</p>
         </div>
       </div>
       <button onclick="closeResidentReview()"

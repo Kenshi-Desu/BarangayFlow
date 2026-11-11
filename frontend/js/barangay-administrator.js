@@ -35,14 +35,62 @@ let reqFilteredData = [];
 
 // Pagination for users section
 const USERS_PAGE_SIZE = 8;
+const RESIDENT_SECTOR_OPTIONS = [
+  "General Resident/Citizen",
+  "Senior Citizen",
+  "Person with Disability (PWD)",
+  "Student",
+  "Solo Parent",
+  "4Ps Beneficiary",
+  "Other"
+];
 let usersResidentPage = 1;
 let usersStaffPage = 1;
 let usersAdminPage = 1;
 let usersItPage = 1;
+let usersResidentSectorFilter = "";
+let usersResidentBarangayFilter = "";
+let usersResidentStatusFilter = "";
+let usersResidentGenderFilter = "";
+let usersResidentCivilStatusFilter = "";
+let usersResidentSearch = "";
 let usersAllResidents = [];
 let usersAllStaff = [];
 let usersAllAdmins = [];
 let usersAllIt = [];
+
+function escapeHtmlText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function getResidentSectors(user) {
+  if (Array.isArray(user.sector)) return user.sector;
+  return user.sector ? [user.sector] : [];
+}
+
+function getResidentBarangay(user) {
+  const match = String(user.address || "").match(/\bBarangay\s+([^,]+)/i);
+  return match ? `Barangay ${match[1].trim()}` : "";
+}
+
+function getResidentStatus(user) {
+  return user.accountStatus || (user.active ? "verified" : "unknown");
+}
+
+function getResidentStatusLabel(status) {
+  return ({
+    pending_verification: "Pending Verification",
+    verified: "Verified",
+    rejected: "Rejected",
+    unknown: "Unknown"
+  })[status] || status.replace(/_/g, " ");
+}
 
 function clearListeners() {
   unsubscribers.forEach(u => u());
@@ -152,6 +200,26 @@ function loadDashboard() {
     renderLineChart(monthlyCounts);
   });
   unsubscribers.push(unsub);
+
+  const residentsUnsub = onSnapshot(collection(db, "users"), snap => {
+    const residents = snap.docs.map(d => d.data());
+    renderResidentSectorCounts(residents);
+  });
+  unsubscribers.push(residentsUnsub);
+}
+
+function renderResidentSectorCounts(residents) {
+  const container = document.getElementById("residentSectorCounts");
+  if (!container) return;
+  const counts = Object.fromEntries(RESIDENT_SECTOR_OPTIONS.map(sector => [sector, 0]));
+  residents.forEach(resident => {
+    getResidentSectors(resident).forEach(sector => {
+      counts[sector] = (counts[sector] || 0) + 1;
+    });
+  });
+  container.innerHTML = RESIDENT_SECTOR_OPTIONS.map((sector, index) =>
+    `<div class="card${index === 0 ? " highlight" : ""}"><p>${escapeHtmlText(sector)}</p><h1>${counts[sector]}</h1></div>`
+  ).join("");
 }
 
 function renderStatusChart(counts) {
@@ -193,6 +261,8 @@ function renderLineChart(counts) {
 // ALL REQUESTS — admin overview + inline update
 // =====================================================================
 let allRequestsData = [];
+let requestResidentsById = new Map();
+let requestServiceCatalog = [];
 
 function loadAllRequests() {
   const el = document.getElementById("requestsTableBody");
@@ -201,15 +271,89 @@ function loadAllRequests() {
   const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
   const unsub = onSnapshot(q, (snap) => {
     allRequestsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderRequestsTable(allRequestsData);
+    refreshRequestFilterOptions();
+    renderRequestSummaryCards();
+    window.filterRequests();
+  }, err => {
+    console.error("Failed to load requests:", err);
+    showToast("Failed to load requests.", "error");
   });
-  unsubscribers.push(unsub);
+  const residentsUnsub = onSnapshot(collection(db, "users"), snap => {
+    requestResidentsById = new Map(snap.docs.map(d => [d.id, d.data()]));
+    refreshRequestFilterOptions();
+    window.filterRequests();
+  }, err => {
+    console.error("Failed to load resident data for request filters:", err);
+    showToast("Could not load resident details for request filters.", "error");
+  });
+  const servicesUnsub = onSnapshot(collection(db, "services"), snap => {
+    requestServiceCatalog = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    refreshRequestFilterOptions();
+  }, err => {
+    console.error("Failed to load services for request filters:", err);
+    showToast("Could not load service options for request filters.", "error");
+  });
+  unsubscribers.push(unsub, residentsUnsub, servicesUnsub);
 }
 
-function renderRequestsTable(data) {
-  reqFilteredData = data;
-  reqCurrentPage = 1;
-  renderRequestsPage();
+function setRequestFilterOptions(id, defaultLabel, values) {
+  const select = document.getElementById(id);
+  if (!select) return;
+  const selected = select.value;
+  const uniqueValues = [...new Map(values.filter(item => item && item.value)
+    .map(item => [String(item.value), { value: String(item.value), label: String(item.label) }])).values()]
+    .sort((a, b) => a.label.localeCompare(b.label));
+  select.innerHTML = `<option value="">${defaultLabel}</option>${uniqueValues.map(value =>
+    `<option value="${escapeHtmlText(value.value)}">${escapeHtmlText(value.label)}</option>`
+  ).join("")}`;
+  if (uniqueValues.some(value => value.value === selected)) select.value = selected;
+}
+
+function refreshRequestFilterOptions() {
+  const catalogOptions = requestServiceCatalog
+    .filter(service => service.name)
+    .map(service => ({ value: service.id, label: service.name }));
+  const catalogNames = new Set(requestServiceCatalog.map(service => service.name).filter(Boolean));
+  const archivedOptions = [...new Set(allRequestsData.map(r => r.serviceType).filter(name => name && !catalogNames.has(name)))]
+    .map(name => ({ value: `legacy:${name}`, label: `${name} (not in service list)` }));
+  setRequestFilterOptions("reqServiceFilter", "All Services", [...catalogOptions, ...archivedOptions]);
+  setRequestFilterOptions("reqBarangayFilter", "All Barangays", allRequestsData.map(r => {
+    const resident = requestResidentsById.get(r.userId) || {};
+    const value = getResidentBarangay({ address: r.address || resident.address });
+    return { value, label: value };
+  }));
+  setRequestFilterOptions(
+    "reqSectorFilter",
+    "All Resident Sectors",
+    allRequestsData.flatMap(r => getResidentSectors(requestResidentsById.get(r.userId) || {})
+      .map(value => ({ value, label: value })))
+  );
+}
+
+function getRequestDocumentStatus(request) {
+  return request.fileURL ? (request.docVerification || "Pending") : "Not Submitted";
+}
+
+function renderRequestSummaryCards() {
+  const container = document.getElementById("requestSummaryCards");
+  if (!container) return;
+  const requestStatuses = ["Pending", "In Progress", "Ready for Pickup", "Completed", "Rejected"];
+  const documentStatuses = ["Pending", "Verified", "Invalid", "Not Submitted"];
+  const counts = Object.fromEntries(requestStatuses.map(status => [status, 0]));
+  const docCounts = Object.fromEntries(documentStatuses.map(status => [status, 0]));
+  allRequestsData.forEach(request => {
+    if (Object.prototype.hasOwnProperty.call(counts, request.status)) counts[request.status]++;
+    const docStatus = getRequestDocumentStatus(request);
+    if (Object.prototype.hasOwnProperty.call(docCounts, docStatus)) docCounts[docStatus]++;
+  });
+  const cards = [
+    { label: "Total Requests", count: allRequestsData.length, style: "highlight" },
+    ...requestStatuses.map(label => ({ label, count: counts[label] })),
+    ...documentStatuses.map(label => ({ label: `Documents ${label}`, count: docCounts[label] }))
+  ];
+  container.innerHTML = cards.map(card =>
+    `<div class="card${card.style ? ` ${card.style}` : ""}"><p>${escapeHtmlText(card.label)}</p><h1>${card.count}</h1></div>`
+  ).join("");
 }
 
 function renderRequestsPage() {
@@ -266,16 +410,60 @@ function renderReqPagination(totalPages) {
 window._reqChangePage = (page) => { reqCurrentPage = page; renderRequestsPage(); };
 
 window.filterRequests = () => {
-  const search = (document.getElementById("reqSearch")?.value || "").toLowerCase();
+  const search = (document.getElementById("reqSearch")?.value || "").trim().toLowerCase();
   const statusF = document.getElementById("reqStatusFilter")?.value || "all";
+  const serviceF = document.getElementById("reqServiceFilter")?.value || "";
+  const barangayF = document.getElementById("reqBarangayFilter")?.value || "";
+  const sectorF = document.getElementById("reqSectorFilter")?.value || "";
+  const verificationF = document.getElementById("reqVerificationFilter")?.value || "";
+  const dateFrom = document.getElementById("reqDateFrom")?.value || "";
+  const dateTo = document.getElementById("reqDateTo")?.value || "";
   const filtered = allRequestsData.filter(r => {
-    const matchSearch = (r.fullName || "").toLowerCase().includes(search) || (r.serviceType || "").toLowerCase().includes(search) || r.id.toLowerCase().includes(search);
+    const resident = requestResidentsById.get(r.userId) || {};
+    const searchText = [
+      r.id, r.fullName, r.serviceType, r.contact, r.address || resident.address,
+      resident.firstName, resident.middleName, resident.lastName, resident.email,
+      resident.phone, r.purpose, r.notes,
+      ...getResidentSectors(resident)
+    ].filter(Boolean).join(" ").toLowerCase();
+    const matchSearch = !search || searchText.includes(search);
     const matchStatus = statusF === "all" || r.status === statusF;
-    return matchSearch && matchStatus;
+    const selectedService = serviceF.startsWith("legacy:")
+      ? null
+      : requestServiceCatalog.find(service => service.id === serviceF);
+    const matchService = !serviceF || (serviceF.startsWith("legacy:")
+      ? r.serviceType === serviceF.slice("legacy:".length)
+      : r.serviceId === serviceF || (!!selectedService && r.serviceType === selectedService.name));
+    const matchBarangay = !barangayF
+      || getResidentBarangay({ address: r.address || resident.address }) === barangayF;
+    const matchSector = !sectorF || getResidentSectors(resident).includes(sectorF);
+    const matchVerification = !verificationF || getRequestDocumentStatus(r) === verificationF;
+    const requestDate = r.createdAt?.toDate ? r.createdAt.toDate() : null;
+    const dateValue = requestDate
+      ? `${requestDate.getFullYear()}-${String(requestDate.getMonth() + 1).padStart(2, "0")}-${String(requestDate.getDate()).padStart(2, "0")}`
+      : "";
+    const matchDateFrom = !dateFrom || (dateValue && dateValue >= dateFrom);
+    const matchDateTo = !dateTo || (dateValue && dateValue <= dateTo);
+    return matchSearch && matchStatus && matchService && matchBarangay
+      && matchSector && matchVerification && matchDateFrom && matchDateTo;
   });
   reqFilteredData = filtered;
   reqCurrentPage = 1;
   renderRequestsPage();
+};
+
+window.clearRequestFilters = () => {
+  ["reqSearch", "reqDateFrom", "reqDateTo"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  ["reqServiceFilter", "reqBarangayFilter", "reqSectorFilter", "reqVerificationFilter"].forEach(id => {
+    const select = document.getElementById(id);
+    if (select) select.value = "";
+  });
+  const status = document.getElementById("reqStatusFilter");
+  if (status) status.value = "all";
+  window.filterRequests();
 };
 
 window.openRequestModal = async (id) => {
@@ -1477,6 +1665,9 @@ function renderUserGroup(containerId, paginationId, items, page, renderFn, empty
 const renderResidentCard = u => {
   const isPending = u.accountStatus === "pending_verification";
   const isRejected = u.accountStatus === "rejected";
+  const sectorBadges = getResidentSectors(u).map(sector =>
+    `<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 8px;border-radius:12px;background:#eef2ff;color:#3730a3;font-size:11px;">${escapeHtmlText(sector)}</span>`
+  ).join("");
   const badge = isPending
     ? `<span class="role-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;cursor:pointer;" onclick="openResidentReview('${u.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span style="vertical-align:middle;">Pending — Review</span></span>`
     : isRejected
@@ -1491,9 +1682,10 @@ const renderResidentCard = u => {
        </button>` : "";
   return `<div class="user-card" style="${isPending ? "border-left:3px solid #f59e0b;" : isRejected ? "border-left:3px solid #ef4444;opacity:.75;" : ""}">
     <div class="user-info">
-      <strong>${u.firstName ? u.firstName+" "+u.lastName : (u.email||"Unknown")}</strong>
+      <strong>${u.firstName ? [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" ") : (u.email||"Unknown")}</strong>
       <small>${u.email||u.id}</small>
       ${u.address ? `<small style="color:#6b7280;">${u.address}</small>` : ""}
+      ${sectorBadges ? `<div aria-label="Resident sectors">${sectorBadges}</div>` : ""}
       ${reviewBtn}
     </div>
     ${badge}
@@ -1501,7 +1693,49 @@ const renderResidentCard = u => {
 };
 const renderStaffCard    = u => `<div class="user-card"><div class="user-info"><strong>${u.username||u.email||"Unknown"}</strong><small>${u.email||u.id}</small></div><span class="role-badge role-${u.role||"staff"}">${u.role==="admin"?"Admin":u.role==="it"?"IT Personnel":"Barangay Staff"}</span></div>`;
 
-window._pgResidents = p => { usersResidentPage = p; renderUserGroup("residentsList","pg-residents",usersAllResidents,p,renderResidentCard,"No residents registered.","window._pgResidents"); };
+window._pgResidents = p => {
+  usersResidentPage = p;
+  const search = usersResidentSearch.trim().toLowerCase();
+  const filteredResidents = usersAllResidents.filter(user => {
+    const searchable = [
+      user.firstName, user.middleName, user.lastName, user.email, user.phone,
+      user.landline, user.address, user.birthDate, user.placeOfBirth,
+      user.gender, user.civilStatus, getResidentStatusLabel(getResidentStatus(user)),
+      ...getResidentSectors(user)
+    ].filter(Boolean).join(" ").toLowerCase();
+    return (!search || searchable.includes(search))
+      && (!usersResidentSectorFilter || getResidentSectors(user).includes(usersResidentSectorFilter))
+      && (!usersResidentBarangayFilter || getResidentBarangay(user) === usersResidentBarangayFilter)
+      && (!usersResidentStatusFilter || getResidentStatus(user) === usersResidentStatusFilter)
+      && (!usersResidentGenderFilter || user.gender === usersResidentGenderFilter)
+      && (!usersResidentCivilStatusFilter || user.civilStatus === usersResidentCivilStatusFilter);
+  });
+  renderUserGroup("residentsList","pg-residents",filteredResidents,p,renderResidentCard,"No residents match these filters.","window._pgResidents");
+};
+window.filterResidentsBySector = value => {
+  usersResidentSectorFilter = value;
+  window._pgResidents(1);
+};
+window.filterResidentsByBarangay = value => {
+  usersResidentBarangayFilter = value;
+  window._pgResidents(1);
+};
+window.filterResidentsByStatus = value => {
+  usersResidentStatusFilter = value;
+  window._pgResidents(1);
+};
+window.filterResidentsByGender = value => {
+  usersResidentGenderFilter = value;
+  window._pgResidents(1);
+};
+window.filterResidentsByCivilStatus = value => {
+  usersResidentCivilStatusFilter = value;
+  window._pgResidents(1);
+};
+window.searchResidents = value => {
+  usersResidentSearch = value;
+  window._pgResidents(1);
+};
 window._pgStaff     = p => { usersStaffPage    = p; renderUserGroup("staffList",    "pg-staff",    usersAllStaff,    p,renderStaffCard,   "No staff accounts found.","window._pgStaff"); };
 window._pgAdmins    = p => { usersAdminPage    = p; renderUserGroup("adminList",    "pg-admins",   usersAllAdmins,   p,renderStaffCard,   "No admin accounts.",     "window._pgAdmins"); };
 window._pgIt        = p => { usersItPage       = p; renderUserGroup("itList",       "pg-it",       usersAllIt,       p,renderStaffCard,   "No IT accounts.",        "window._pgIt"); };
@@ -1519,12 +1753,59 @@ function loadUsers() {
     const pendingBadge = pendingCount > 0
       ? `<span class="user-count" style="background:#f59e0b;color:#fff;margin-left:6px;">${pendingCount} pending</span>`
       : "";
+    const residentSectors = [...new Set([
+      ...RESIDENT_SECTOR_OPTIONS,
+      ...usersAllResidents.flatMap(getResidentSectors)
+    ])].sort((a, b) => a.localeCompare(b));
+    const sectorOptions = residentSectors.map(sector =>
+      `<option value="${escapeHtmlText(sector)}"${sector === usersResidentSectorFilter ? " selected" : ""}>${escapeHtmlText(sector)}</option>`
+    ).join("");
+    const residentBarangays = [...new Set(usersAllResidents.map(getResidentBarangay).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+    const barangayOptions = residentBarangays.map(barangay =>
+      `<option value="${escapeHtmlText(barangay)}"${barangay === usersResidentBarangayFilter ? " selected" : ""}>${escapeHtmlText(barangay)}</option>`
+    ).join("");
+    const residentStatuses = [...new Set(usersAllResidents.map(getResidentStatus))]
+      .sort((a, b) => a.localeCompare(b));
+    const statusOptions = residentStatuses.map(status =>
+      `<option value="${escapeHtmlText(status)}"${status === usersResidentStatusFilter ? " selected" : ""}>${escapeHtmlText(getResidentStatusLabel(status))}</option>`
+    ).join("");
+    const residentGenders = [...new Set(usersAllResidents.map(user => user.gender).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+    const genderOptions = residentGenders.map(gender =>
+      `<option value="${escapeHtmlText(gender)}"${gender === usersResidentGenderFilter ? " selected" : ""}>${escapeHtmlText(gender)}</option>`
+    ).join("");
+    const residentCivilStatuses = [...new Set(usersAllResidents.map(user => user.civilStatus).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+    const civilStatusOptions = residentCivilStatuses.map(status =>
+      `<option value="${escapeHtmlText(status)}"${status === usersResidentCivilStatusFilter ? " selected" : ""}>${escapeHtmlText(status)}</option>`
+    ).join("");
     el.innerHTML = `
       <div class="user-group">
         <h4 class="user-group-title">Residents <span class="user-count">${usersAllResidents.length}</span>${pendingBadge}</h4>
         ${pendingCount > 0 ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
           <strong><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> <span style="vertical-align:middle;">${pendingCount} resident(s) pending ID verification.</span></strong> Review and approve or reject below.
         </div>` : ""}
+        <div class="filters" style="margin-bottom:14px;">
+          <input id="residentSearch" type="search" value="${escapeHtmlText(usersResidentSearch)}"
+                 placeholder="Search residents by name, email, phone, address..."
+                 oninput="searchResidents(this.value)">
+          <select id="residentSectorFilter" aria-label="Filter residents by sector" onchange="filterResidentsBySector(this.value)">
+            <option value="">All sectors</option>${sectorOptions}
+          </select>
+          <select id="residentBarangayFilter" aria-label="Filter residents by barangay" onchange="filterResidentsByBarangay(this.value)">
+            <option value="">All barangays</option>${barangayOptions}
+          </select>
+          <select id="residentStatusFilter" aria-label="Filter residents by account status" onchange="filterResidentsByStatus(this.value)">
+            <option value="">All account statuses</option>${statusOptions}
+          </select>
+          <select id="residentGenderFilter" aria-label="Filter residents by gender" onchange="filterResidentsByGender(this.value)">
+            <option value="">All genders</option>${genderOptions}
+          </select>
+          <select id="residentCivilStatusFilter" aria-label="Filter residents by civil status" onchange="filterResidentsByCivilStatus(this.value)">
+            <option value="">All civil statuses</option>${civilStatusOptions}
+          </select>
+        </div>
         <div id="residentsList"></div><div id="pg-residents" class="pagination-bar"></div>
       </div>
       <div class="user-group"><h4 class="user-group-title">Barangay Staff <span class="user-count">${usersAllStaff.length}</span></h4><div id="staffList"></div><div id="pg-staff" class="pagination-bar"></div></div>
@@ -1556,10 +1837,18 @@ window.openResidentReview = function(uid) {
     ? u.createdAt.toDate().toLocaleString("en-PH", { timeZone:"Asia/Manila", dateStyle:"medium", timeStyle:"short" })
     : "—";
 
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+
   const row = (label, value) =>
     `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;align-items:flex-start;">
        <span style="min-width:130px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.3px;">${label}</span>
-       <span style="font-size:13px;color:#111827;word-break:break-word;">${value || "—"}</span>
+       <span style="font-size:13px;color:#111827;word-break:break-word;">${escapeHtml(value) || "—"}</span>
      </div>`;
 
   const idSection = u.idPhotoUrl
@@ -1596,12 +1885,18 @@ window.openResidentReview = function(uid) {
 
   body.innerHTML = `
     <div style="margin-bottom:4px;">
-      ${row("Full Name",    (u.firstName||"") + " " + (u.lastName||""))}
-      ${row("Email",        u.email)}
-      ${row("Phone",        u.phone)}
-      ${row("Address",      u.address)}
-      ${row("Registered",   registeredAt)}
-      ${row("Email Verified", u.emailVerified ? '<span style="color:#16a34a;display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg> Yes</span>' : '<span style="color:#dc2626;display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> No</span>')}
+      ${row("Full Name", [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" "))}
+      ${row("Gender", u.gender)}
+      ${row("Civil Status", u.civilStatus)}
+      ${row("Date of Birth", u.birthDate)}
+      ${row("Place of Birth", u.placeOfBirth)}
+      ${row("Resident Sector", getResidentSectors(u).join(", "))}
+      ${row("Email", u.email)}
+      ${row("Mobile", u.phone)}
+      ${row("Landline", u.landline)}
+      ${row("Address", u.address)}
+      ${row("Registered", registeredAt)}
+      ${row("Email Verified", u.emailVerified ? "Yes" : "No")}
     </div>
     ${idSection}`;
 

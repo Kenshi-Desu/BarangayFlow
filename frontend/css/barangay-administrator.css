@@ -143,6 +143,11 @@ a { text-decoration:none; cursor:pointer; }
   transition: border .2s;
 }
 .filters input:focus, .filters select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,44,255,.08); }
+.request-search { margin-bottom:8px; }
+.request-search input { width:100%; }
+.request-summary-cards { margin:12px 0 18px; }
+.request-summary-cards .card { padding:12px 14px; }
+.request-summary-cards .card h1 { font-size:22px; }
 
 /* ── TABLE ─────────────────────────────────────────────────── */
 .table-container {
