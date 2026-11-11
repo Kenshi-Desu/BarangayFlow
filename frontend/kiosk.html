@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Document Kiosk | BarangayFlow</title>
+  <link rel="icon" href="images/BarangayFlow.Logo.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/kiosk.css" />
+</head>
+<body>
+
+  <!-- TOP KIOSK HEADER -->
+  <header class="kiosk-header">
+    <div class="kiosk-header-inner">
+      <a href="index.html" class="kiosk-brand">
+        <img src="images/BARANGAYFLOW.logo2.png" alt="BarangayFlow Logo" />
+        <div class="kiosk-brand-text">
+          <h1>BarangayFlow Document Kiosk</h1>
+          <span>Barangay Sta. Rita, Olongapo City</span>
+        </div>
+      </a>
+
+      <div class="kiosk-header-actions">
+        <div id="officeStatusPill" class="office-pill">
+          <span class="office-dot"></span>
+          <span id="officeStatusText">Checking hours...</span>
+        </div>
+
+        <button type="button" id="myTicketsBtn" class="header-btn">
+          <span>My Tickets</span>
+          <span id="ticketCountBadge" class="ticket-count-badge">0</span>
+        </button>
+
+        <a href="track.html" class="header-btn">Track Request</a>
+        <a href="index.html" class="header-btn">Home</a>
+
+        <button type="button" id="startOverBtn" class="header-btn header-btn-gold">
+          Start Over
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 3-STEP KIOSK PROGRESS BAR -->
+  <nav class="stepper-bar" aria-label="Kiosk Steps">
+    <div class="stepper-inner">
+      <button type="button" id="stepBtn1" class="step-pill active" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-meta">
+          <strong>Available Documents</strong>
+          <small>Choose document(s) to inquire</small>
+        </span>
+      </button>
+
+      <button type="button" id="stepBtn2" class="step-pill" data-step="2" disabled>
+        <span class="step-num">2</span>
+        <span class="step-meta">
+          <strong>Fill Up Information</strong>
+          <small>Details for the inquired document</small>
+        </span>
+      </button>
+
+      <button type="button" id="stepBtn3" class="step-pill" data-step="3" disabled>
+        <span class="step-num">3</span>
+        <span class="step-meta">
+          <strong>Queue Number Ticket</strong>
+          <small>Proceed to Barangay Hall to claim</small>
+        </span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN KIOSK CONTENT -->
+  <main class="kiosk-main">
+
+    <!-- STEP 1: AVAILABLE DOCUMENTS -->
+    <section id="step1View" aria-labelledby="step1Heading">
+      <div class="kiosk-banner">
+        <div class="kiosk-banner-copy">
+          <h2 id="step1Heading">Available Documents</h2>
+          <p>Tap one or more standard barangay documents below, fill up your details, and get your queue number to claim at Barangay Sta. Rita Hall.</p>
+        </div>
+        <div class="kiosk-banner-tag">
+          <span>Self-Service Queue Kiosk</span>
+        </div>
+      </div>
+
+      <div id="userStatusBar" class="user-status-bar hidden"></div>
+
+      <div class="kiosk-menu-shell">
+        <!-- Left Category Rail -->
+        <aside class="category-rail" aria-label="Document Categories">
+          <div class="category-rail-title">Document Categories</div>
+          <div id="categoryList"></div>
+        </aside>
+
+        <!-- Right Documents Menu -->
+        <div class="menu-content">
+          <div class="menu-toolbar">
+            <div class="search-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="search" id="docSearchInput" placeholder="Search documents (e.g. Clearance, Indigency, Permit)..." autocomplete="off" />
+            </div>
+
+            <div class="quick-filters">
+              <button type="button" class="filter-chip active" data-filter="all">All</button>
+              <button type="button" class="filter-chip" data-filter="free">Free Documents</button>
+              <button type="button" class="filter-chip" data-filter="sameday">Same-Day Release</button>
+            </div>
+          </div>
+
+          <div id="docsGrid" class="docs-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: FILL UP INFORMATION -->
+    <section id="step2View" class="hidden" aria-labelledby="step2Heading">
+      <div class="kiosk-banner">
+        <div class="kiosk-banner-copy">
+          <h2 id="step2Heading">Fill Up Information</h2>
+          <p>Complete your applicant details and required information for the inquired document(s) before receiving your queue number.</p>
+        </div>
+        <div class="kiosk-banner-tag">
+          <span id="step2DocCountTag">1 Document Selected</span>
+        </div>
+      </div>
+
+      <div class="info-layout">
+        <!-- Selected Inquired Document Summary -->
+        <aside class="selected-summary-card">
+          <h3>Inquired Document(s)</h3>
+          <div id="summaryDocList" class="summary-doc-list"></div>
+
+          <div class="summary-totals">
+            <div class="summary-total-row">
+              <span>Documents Selected</span>
+              <span id="summaryCount">0</span>
+            </div>
+            <div class="summary-total-row">
+              <span>Est. Fee at Barangay</span>
+              <strong id="summaryTotalFee">Free</strong>
+            </div>
+          </div>
+
+          <div class="summary-bring-box">
+            <h4>Bring When Claiming</h4>
+            <ul id="summaryReqsList"></ul>
+          </div>
+
+          <button type="button" id="changeDocsBtn" class="btn-change-docs">
+            Change / Add Documents
+          </button>
+        </aside>
+
+        <!-- Form Card -->
+        <form id="kioskInfoForm" class="form-card" novalidate>
+          <!-- Block 1: Applicant Information -->
+          <div class="form-block">
+            <div class="form-section-title">
+              <span class="section-badge">A</span>
+              <span>Applicant Personal Information</span>
+            </div>
+
+            <div class="form-grid">
+              <div class="field full">
+                <label for="applicantFullName">Full Name <span class="req-star">*</span></label>
+                <input type="text" id="applicantFullName" placeholder="e.g. Juan M. Dela Cruz" required />
+              </div>
+
+              <div class="field">
+                <label for="applicantContact">Mobile Number <span class="req-star">*</span></label>
+                <input type="tel" id="applicantContact" inputmode="numeric" maxlength="11" placeholder="09171234567" required />
+              </div>
+
+              <div class="field">
+                <label for="applicantAge">Age <span class="opt-tag">(Optional)</span></label>
+                <input type="number" id="applicantAge" min="1" max="120" placeholder="e.g. 26" />
+              </div>
+
+              <div class="field">
+                <label for="applicantCivilStatus">Civil Status <span class="opt-tag">(Optional)</span></label>
+                <select id="applicantCivilStatus">
+                  <option value="">Select Civil Status</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Separated">Separated</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="claimMode">Claiming Method</label>
+                <select id="claimMode">
+                  <option value="In Person">Claiming in Person</option>
+                  <option value="Representative">Authorized Representative</option>
+                </select>
+              </div>
+
+              <div id="repNameField" class="field full hidden">
+                <label for="representativeName">Authorized Representative Full Name <span class="req-star">*</span></label>
+                <input type="text" id="representativeName" placeholder="Full name of person claiming at Barangay Hall" />
+              </div>
+
+              <div class="field full">
+                <label for="applicantAddress">Complete Residential Address <span class="req-star">*</span></label>
+
+                <div class="address-helper-box">
+                  <div class="address-helper-grid">
+                    <div>
+                      <select id="kioskPurok" aria-label="Purok in Barangay Sta. Rita">
+                        <option value="">Quick Fill: Select Purok</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select id="kioskStreet" aria-label="Street in Barangay Sta. Rita" disabled>
+                        <option value="">Select Purok first</option>
+                      </select>
+                    </div>
+                    <div>
+                      <input type="text" id="kioskHouseNo" placeholder="House / Lot No." aria-label="House or Lot Number" />
+                    </div>
+                  </div>
+                  <span class="field-hint">Use the quick Sta. Rita Purok picker above or type your complete address below.</span>
+                </div>
+
+                <input type="text" id="applicantAddress" placeholder="House No., Street, Purok, Barangay Sta. Rita, Olongapo City" required />
+              </div>
+            </div>
+          </div>
+
+          <!-- Block 2: Purpose & Document-Specific Info -->
+          <div class="form-block">
+            <div class="form-section-title">
+              <span class="section-badge">B</span>
+              <span>Information for the Inquired Document</span>
+            </div>
+
+            <div class="form-grid">
+              <div class="field full">
+                <label for="inquiryPurpose">Purpose of Request <span class="req-star">*</span></label>
+                <div id="purposePresets" class="purpose-chips"></div>
+                <textarea id="inquiryPurpose" rows="2" placeholder="Tap a preset above or type your purpose (e.g. Local Employment, Scholarship, Business Renewal)..." required></textarea>
+              </div>
+            </div>
+
+            <!-- Dynamic Document-Specific Extra Fields -->
+            <div id="dynamicDocFields"></div>
+
+            <div class="form-grid">
+              <div class="field full">
+                <label for="inquiryNotes">Additional Notes for Barangay Staff <span class="opt-tag">(Optional)</span></label>
+                <textarea id="inquiryNotes" rows="2" placeholder="Any special instructions, spelling notes, or urgency details..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="formErrorBox" class="form-error-box hidden" role="alert"></div>
+
+          <div class="form-actions">
+            <button type="button" id="backToDocsBtn" class="btn-back-step">
+              Back to Documents
+            </button>
+            <button type="submit" id="submitKioskBtn" class="btn-submit-kiosk">
+              <span>Get Queue Number &amp; Submit</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- STEP 3: QUEUE NUMBER TICKET -->
+    <section id="step3View" class="hidden" aria-labelledby="ticketQueueNumber">
+      <div class="ticket-wrapper">
+        <article class="ticket-card">
+          <div class="ticket-hero">
+            <div class="ticket-seals">
+              <img src="images/olongapo-city-seal.png" alt="Olongapo City Seal" />
+              <img src="images/barangay-seal-generated.png" alt="Barangay Sta. Rita Seal" />
+            </div>
+
+            <div class="ticket-status-pill">Queue Ticket Issued</div>
+            <h2>Your Barangay Document Queue Number</h2>
+            <div id="ticketQueueNumber" class="queue-number-display">K-001</div>
+            <p class="ticket-proceed-banner">Proceed to Barangay Sta. Rita Hall to get your requested document</p>
+            <p class="ticket-proceed-sub">Horseshoe Drive, Barangay Sta. Rita, Olongapo City</p>
+          </div>
+
+          <div class="ticket-perforation" aria-hidden="true"></div>
+
+          <div class="ticket-body">
+            <div id="ticketOffHoursAlert" class="ticket-offhours-alert hidden"></div>
+
+            <div class="ticket-window-strip">
+              <div class="ticket-stat-box">
+                <span>Proceed To Window</span>
+                <strong id="ticketWindowText">Window 1</strong>
+              </div>
+              <div class="ticket-stat-box">
+                <span>Ticket Reference</span>
+                <strong id="ticketRefCode">—</strong>
+              </div>
+              <div class="ticket-stat-box">
+                <span>Estimated Fee</span>
+                <strong id="ticketTotalFee">Free</strong>
+              </div>
+            </div>
+
+            <div id="ticketSyncBanner" class="ticket-section hidden">
+              <h4>Online Request Tracking</h4>
+              <p id="ticketSyncText" class="field-hint"></p>
+            </div>
+
+            <div class="ticket-section">
+              <h4>Applicant Information</h4>
+              <div class="ticket-info-grid">
+                <div class="ticket-kv">
+                  <small>Applicant Name</small>
+                  <p id="ticketName">—</p>
+                </div>
+                <div class="ticket-kv">
+                  <small>Contact Number</small>
+                  <p id="ticketContact">—</p>
+                </div>
+                <div class="ticket-kv">
+                  <small>Address</small>
+                  <p id="ticketAddress">—</p>
+                </div>
+                <div class="ticket-kv">
+                  <small>Purpose</small>
+                  <p id="ticketPurpose">—</p>
+                </div>
+              </div>
+              <div id="ticketExtraDetails" class="ticket-info-grid hidden"></div>
+            </div>
+
+            <div class="ticket-section">
+              <h4>Requested Document(s)</h4>
+              <div id="ticketDocsList"></div>
+            </div>
+
+            <div class="ticket-section">
+              <h4>Requirements to Present at the Barangay Counter</h4>
+              <ul id="ticketChecklist" class="ticket-checklist"></ul>
+            </div>
+
+            <div class="ticket-steps-grid">
+              <div class="ticket-step-item">
+                <span class="ticket-step-num">1</span>
+                <strong>Keep Your Number</strong>
+                <p>Print this slip, copy your ticket details, or take a screenshot of your queue number.</p>
+              </div>
+              <div class="ticket-step-item">
+                <span class="ticket-step-num">2</span>
+                <strong>Go to Barangay Hall</strong>
+                <p>Visit Barangay Sta. Rita Hall during office hours (Mon–Fri, 8:00 AM – 5:00 PM) with your valid ID.</p>
+              </div>
+              <div class="ticket-step-item">
+                <span class="ticket-step-num">3</span>
+                <strong>Claim Your Document</strong>
+                <p>Wait for your queue number at the assigned counter window, settle any fee, and receive your document.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div class="ticket-actions">
+          <button type="button" id="printTicketBtn" class="btn-ticket-primary">Print Queue Ticket</button>
+          <button type="button" id="copyTicketBtn" class="btn-ticket-outline">Copy Ticket Summary</button>
+          <a id="trackOnlineBtn" href="track.html" class="btn-ticket-outline hidden">Track Request Online</a>
+          <button type="button" id="newKioskOrderBtn" class="btn-ticket-gold">Request Another Document</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STICKY BOTTOM MCDO-STYLE REQUEST TRAY BAR (STEP 1 ONLY) -->
+  <footer id="kioskTrayBar" class="kiosk-tray-bar">
+    <div class="kiosk-tray-inner">
+      <div class="tray-summary">
+        <div class="tray-headline">
+          <span id="trayCountText">My Request Tray (0 selected)</span>
+          <span id="trayFeePill" class="tray-fee-pill">Est. Fee: Free</span>
+        </div>
+        <div id="trayChips" class="tray-chips">
+          <span class="tray-empty-hint">Tap any document above to add it to your request.</span>
+        </div>
+      </div>
+
+      <div class="tray-actions">
+        <button type="button" id="clearTrayBtn" class="btn-tray-clear" disabled>Clear</button>
+        <button type="button" id="proceedInfoBtn" class="btn-tray-next" disabled>
+          <span>Proceed to Fill Up Info</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DOCUMENT DETAILS MODAL -->
+  <div id="docDetailModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="docModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="docModalTitle">Document Details</h3>
+        <button type="button" id="closeDocModalBtn" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="docModalBody" class="modal-body"></div>
+      <div class="modal-foot">
+        <button type="button" id="modalDismissBtn" class="btn-info">Close</button>
+        <button type="button" id="modalToggleSelectBtn" class="btn-ticket-primary">Select Document</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY RECENT TICKETS MODAL -->
+  <div id="ticketsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ticketsModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="ticketsModalTitle">Recent Kiosk Queue Tickets</h3>
+        <button type="button" id="closeTicketsModalBtn" class="modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="ticketsModalBody" class="modal-body"></div>
+      <div class="modal-foot">
+        <button type="button" id="clearTicketsHistoryBtn" class="btn-info">Clear History</button>
+        <button type="button" id="dismissTicketsModalBtn" class="btn-ticket-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="js/kiosk.js"></script>
+</body>
+</html>
+

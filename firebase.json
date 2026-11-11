@@ -21,6 +21,10 @@
       {
         "source": "/it-panel",
         "destination": "/it.html"
+      },
+      {
+        "source": "/kiosk",
+        "destination": "/kiosk.html"
       }
     ]
   }
