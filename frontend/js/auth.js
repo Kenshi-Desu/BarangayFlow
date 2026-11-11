@@ -41,7 +41,7 @@ function getPHT() {
 // ─────────────────────────────────────────────
 //  CLOUDINARY CONFIG (ID upload)
 // ─────────────────────────────────────────────
-const CLD_CLOUD  = "dqlel56w3";
+const CLD_CLOUD  = "dqlei56w3";
 const CLD_PRESET = "barangayflow_docs";
 const CLD_URL    = `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/auto/upload`;
 
@@ -81,17 +81,27 @@ function generatePin() {
 }
 
 async function sendPinEmail(toEmail, toName, pin) {
-  const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      service_id: "service_1a2x7fh", template_id: "template_pr7b3ue",
-      user_id: "krigoh9n_j7c_y5T1",
-      template_params: { to_name: toName, to_email: toEmail, pin_code: pin,
-                         reply_to: "noreply@barangayflow.web.app" }
-    })
-  });
-  if (!res.ok) throw new Error("Failed to send PIN email.");
+  let res;
+  try {
+    res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: "service_1a2x7fh", template_id: "template_pr7b3ue",
+        user_id: "krigoh9n_j7c_y5T1",
+        template_params: { to_name: toName, to_email: toEmail, pin_code: pin,
+                           reply_to: "noreply@barangayflow.web.app" }
+      })
+    });
+  } catch {
+    throw new Error("Could not reach the email service. Check your internet connection and try again.");
+  }
+
+  if (!res.ok) {
+    const responseText = (await res.text()).trim();
+    const reason = responseText ? `: ${responseText.slice(0, 250)}` : "";
+    throw new Error(`Email service returned HTTP ${res.status}${reason}`);
+  }
 }
 
 function showPinOverlay(email) {
@@ -129,9 +139,17 @@ if (registerForm) {
     e.preventDefault();
     setError("registerError", "");
     const firstName = document.getElementById("firstName")?.value.trim() || "";
+    const middleName = document.getElementById("middleName")?.value.trim() || "";
     const lastName  = document.getElementById("lastName")?.value.trim()  || "";
+    const gender = document.getElementById("gender")?.value || "";
+    const civilStatus = document.getElementById("civilStatus")?.value || "";
+    const birthDate = document.getElementById("birthDate")?.value || "";
+    const placeOfBirth = document.getElementById("placeOfBirth")?.value.trim() || "";
+    const sector = Array.from(document.querySelectorAll('input[name="sector"]:checked'))
+      .map(input => input.value);
     const email     = document.getElementById("email")?.value.trim()     || "";
     const phone     = document.getElementById("phone")?.value.trim()     || "";
+    const landline  = document.getElementById("landline")?.value.trim()  || "";
     const address   = document.getElementById("address")?.value.trim()   || "";
     const password  = document.getElementById("password")?.value         || "";
     const confirm   = document.getElementById("confirmPassword")?.value  || "";
@@ -146,6 +164,10 @@ if (registerForm) {
       setError("registerError", "Password must contain: " + pwErrors.join(", ") + "."); return;
     }
     if (password !== confirm) { setError("registerError", "Passwords do not match."); return; }
+    if (!sector.length) {
+      setError("registerError", "Please select at least one resident sector.");
+      document.querySelector('input[name="sector"]')?.focus(); return;
+    }
     if (!address) {
       setError("registerError", "Please select your Purok and Street to complete your address.");
       document.getElementById("addrPurok")?.focus(); return;
@@ -166,11 +188,15 @@ if (registerForm) {
     try {
       const pin = generatePin();
       _pendingPin = pin; _pinExpiry = Date.now() + 10 * 60 * 1000;
-      _pendingRegData = { firstName, lastName, email, phone, address, password };
+      _pendingRegData = {
+        firstName, middleName, lastName, gender, civilStatus, birthDate,
+        placeOfBirth, sector, email, phone, landline, address, password
+      };
       await sendPinEmail(email, firstName, pin);
       showPinOverlay(email); startResendCooldown();
     } catch (err) {
-      setError("registerError", "Could not send verification PIN. Check your email and try again.");
+      const detail = err instanceof Error ? err.message : "Unknown email service error.";
+      setError("registerError", `Could not send verification PIN. ${detail}`);
       console.error(err);
     } finally {
       setLoading("registerBtn", false, "", "Create Account");
@@ -218,7 +244,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (pinError) pinError.style.display = "none";
       verifyBtn.disabled = true; verifyBtn.textContent = "Creating account…";
-      const { firstName, lastName, email, phone, address, password } = _pendingRegData;
+      const {
+        firstName, middleName, lastName, gender, civilStatus, birthDate,
+        placeOfBirth, sector, email, phone, landline, address, password
+      } = _pendingRegData;
+      let registrationStep = "ID upload";
       try {
         verifyBtn.textContent = "Uploading ID…";
         // Upload ID to Cloudinary first
@@ -230,10 +260,13 @@ document.addEventListener("DOMContentLoaded", () => {
           idPublicId = cloud.publicId;
         }
 
+        registrationStep = "Firebase account creation";
         verifyBtn.textContent = "Creating account…";
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        registrationStep = "saving your profile to Firestore";
         await setDoc(doc(db, "users", userCred.user.uid), {
-          firstName, lastName, email, phone, address,
+          firstName, middleName, lastName, gender, civilStatus, birthDate,
+          placeOfBirth, sector, email, phone, landline, address,
           emailVerified: true,
           active: false,
           accountStatus: "pending_verification",
@@ -254,11 +287,18 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (err) {
         hidePinOverlay();
         const errMap = {
-          "auth/email-already-in-use": "An account with this email already exists.",
-          "auth/invalid-email":        "Please enter a valid email address.",
-          "auth/weak-password":        "Password is too weak. Use at least 6 characters."
+          "auth/email-already-in-use": "An account with this email already exists. Try signing in instead.",
+          "auth/invalid-email": "Please enter a valid email address.",
+          "auth/weak-password": "Password is too weak. Use at least 6 characters.",
+          "auth/operation-not-allowed": "Email/password sign-in is not enabled for this Firebase project.",
+          "auth/network-request-failed": "Network error connecting to Firebase. Check your connection and try again.",
+          "permission-denied": "Firestore denied permission to save the profile. Check the deployed Firestore rules.",
+          "unavailable": "Firestore is temporarily unavailable. Check your connection and try again."
         };
-        setError("registerError", errMap[err.code] || "Registration failed. Please try again.");
+        const code = err?.code || "";
+        const message = errMap[code] || (err instanceof Error ? err.message : "Unknown error.");
+        setError("registerError", `Registration failed while ${registrationStep}: ${message}`);
+        console.error("Registration failed:", { step: registrationStep, code, error: err });
         verifyBtn.disabled = false; verifyBtn.textContent = "Verify PIN";
       }
     });
@@ -274,8 +314,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (pinError) { pinError.textContent = "New PIN sent! Check your inbox."; pinError.style.display = "block"; pinError.style.color = "#16a34a"; pinError.style.background = "#f0fff4"; }
       document.querySelectorAll(".pin-digit").forEach(d => d.value = "");
       document.querySelector(".pin-digit")?.focus();
-    } catch {
-      if (pinError) { pinError.textContent = "Failed to resend PIN."; pinError.style.display = "block"; pinError.style.color = "#dc2626"; pinError.style.background = "#fee2e2"; }
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "Unknown email service error.";
+      if (pinError) { pinError.textContent = `Failed to resend PIN. ${detail}`; pinError.style.display = "block"; pinError.style.color = "#dc2626"; pinError.style.background = "#fee2e2"; }
     }
   });
 

@@ -32,10 +32,88 @@
           <input id="firstName" type="text" placeholder="Juan" required>
         </div>
         <div class="field">
+          <label>Middle Name</label>
+          <input id="middleName" type="text" placeholder="Santos">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
           <label>Last Name</label>
           <input id="lastName" type="text" placeholder="Dela Cruz" required>
         </div>
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender" required>
+            <option value="" disabled selected>Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
       </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Civil Status</label>
+          <select id="civilStatus" required>
+            <option value="" disabled selected>Select civil status</option>
+            <option value="Single">Single</option>
+            <option value="Married">Married</option>
+            <option value="Widowed">Widowed</option>
+            <option value="Separated">Separated</option>
+            <option value="Divorced">Divorced</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date of Birth</label>
+          <input id="birthDate" type="date" required>
+        </div>
+      </div>
+
+      <div class="field full">
+        <label>Place of Birth</label>
+        <input id="placeOfBirth" type="text" placeholder="City or municipality" required>
+      </div>
+
+      <fieldset class="field full" style="border:0;padding:0;">
+        <legend style="margin-bottom:8px;font-weight:600;font-size:13px;color:var(--text);">
+          Resident Sector <span style="color:#ef4444;">*</span>
+        </legend>
+        <p style="font-size:12px;color:#6b7280;margin:0 0 10px;">
+          Select all sectors that apply.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="General Resident/Citizen">
+            General Resident/Citizen
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="Senior Citizen">
+            Senior Citizen
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="Person with Disability (PWD)">
+            Person with Disability (PWD)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="Student">
+            Student
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="Solo Parent">
+            Solo Parent
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="4Ps Beneficiary">
+            4Ps Beneficiary
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input class="sector-checkbox" type="checkbox" name="sector" value="Other">
+            Other
+          </label>
+        </div>
+      </fieldset>
 
       <div class="row">
         <div class="field">
@@ -63,6 +141,11 @@
             autocomplete="tel"
             required>
         </div>
+      </div>
+
+      <div class="field">
+        <label>Landline <span style="color:#6b7280;font-weight:400;">(Optional)</span></label>
+        <input id="landline" type="tel" autocomplete="tel">
       </div>
 
       <!-- ADDRESS — Cascading Purok → Street → House No. -->

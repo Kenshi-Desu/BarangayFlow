@@ -243,6 +243,20 @@ input[type="password"]::-webkit-credentials-auto-fill-button { display: none !im
   box-shadow: none !important;
   background: none !important;
 }
+.sector-checkbox {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  margin: 0;
+  padding: 0 !important;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: none !important;
+}
 .terms-link {
   background: none;
   border: none;
