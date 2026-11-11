@@ -236,7 +236,9 @@ window.generateReport = async function() {
 async function genRequests() {
   const fv=document.getElementById("filterFrom").value, tv=document.getElementById("filterTo").value;
   const st=document.getElementById("filterStatus").value, sv=document.getElementById("filterService").value;
-  let rows=(await getDocs(query(collection(db,"requests"),orderBy("createdAt","desc")))).docs.map(d=>({id:d.id,...d.data()}));
+  let rows=(await getDocs(query(collection(db,"requests"),orderBy("createdAt","desc")))).docs
+    .map(d=>({id:d.id,...d.data()}))
+    .filter(r=>r.source!=="kiosk" && !r.queueNumber && !r.kioskReference);
   if(fv) rows=rows.filter(r=>r.createdAt?.toDate?.()>=new Date(fv+"T00:00:00"));
   if(tv) rows=rows.filter(r=>r.createdAt?.toDate?.()<=new Date(tv+"T23:59:59"));
   if(st) rows=rows.filter(r=>r.status===st);
@@ -265,7 +267,9 @@ async function genResidents() {
 
 async function genDaily() {
   const fv=document.getElementById("filterFrom").value, tv=document.getElementById("filterTo").value;
-  let rows=(await getDocs(query(collection(db,"requests"),orderBy("createdAt","desc")))).docs.map(d=>({id:d.id,...d.data()}));
+  let rows=(await getDocs(query(collection(db,"requests"),orderBy("createdAt","desc")))).docs
+    .map(d=>({id:d.id,...d.data()}))
+    .filter(r=>r.source!=="kiosk" && !r.queueNumber && !r.kioskReference);
   if(fv) rows=rows.filter(r=>r.createdAt?.toDate?.()>=new Date(fv+"T00:00:00"));
   if(tv) rows=rows.filter(r=>r.createdAt?.toDate?.()<=new Date(tv+"T23:59:59"));
   renderStats([{num:rows.length,lbl:"Transactions"}]);

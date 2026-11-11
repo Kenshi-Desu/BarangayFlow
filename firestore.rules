@@ -29,6 +29,7 @@ service cloud.firestore {
 
     function isAdmin()        { return hasRole("admin"); }
     function isIT()           { return hasRole("it");    }
+    function isStaff()        { return hasRole("staff"); }
     function isStaffOrAbove() {
       return adminExists()
         && adminData().role in ["staff", "admin", "it"];
@@ -176,6 +177,49 @@ service cloud.firestore {
       allow read:   if isOwner(uid) || isIT();
       allow update: if isIT();
       allow delete: if isIT();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  KIOSK REQUESTS
+    //
+    //  READ   : Barangay Staff & Barangay Admin only.
+    //  CREATE : Public kiosk submissions (walk-in or signed-in).
+    //  UPDATE : Staff & Admin may mark a kiosk request Completed.
+    //  DELETE : Disabled (immutable kiosk queue records).
+    // ═══════════════════════════════════════════════════════
+    match /kioskRequests/{kioskId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if request.resource.data.source == "kiosk"
+        && (!("status" in request.resource.data) || request.resource.data.status == "Pending")
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() <= 200
+        && request.resource.data.contact is string
+        && request.resource.data.contact.matches('^09[0-9]{9}$')
+        && request.resource.data.address is string
+        && request.resource.data.address.size() > 0
+        && request.resource.data.address.size() <= 500
+        && request.resource.data.purpose is string
+        && request.resource.data.purpose.size() > 0
+        && request.resource.data.purpose.size() <= 500
+        && request.resource.data.queueNumber is string
+        && request.resource.data.queueNumber.size() > 0
+        && request.resource.data.queueNumber.size() <= 20
+        && request.resource.data.kioskReference is string
+        && request.resource.data.kioskReference.size() > 0
+        && request.resource.data.kioskReference.size() <= 40
+        && request.resource.data.serviceType is string
+        && request.resource.data.serviceType.size() > 0
+        && request.resource.data.serviceType.size() <= 2000
+        && request.resource.data.documents is list
+        && request.resource.data.documents.size() > 0
+        && request.resource.data.documents.size() <= 20;
+      allow update: if (isStaff() || isAdmin())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status", "completedAt", "completedBy", "updatedAt"
+        ])
+        && request.resource.data.status == "Completed";
+      allow delete: if false;
     }
 
   }

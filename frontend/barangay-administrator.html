@@ -31,6 +31,7 @@
   <div class="nav-right" id="navRight">
     <a id="nav-dashboard" onclick="showSection('dashboard');closeNav()">Dashboard</a>
     <a id="nav-requests"  onclick="showSection('requests');closeNav()">Requests</a>
+    <a id="nav-kiosk"     onclick="showSection('kiosk');closeNav()">Kiosk Requests</a>
     <a id="nav-services"  onclick="showSection('services');closeNav()">Services</a>
     <a id="nav-users"     onclick="showSection('users');closeNav()">Users</a>
     <a id="nav-announcements" onclick="showSection('announcements');closeNav()" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
@@ -121,6 +122,11 @@
     </div>
 
     <div class="filters">
+      <select id="reqCategoryFilter" aria-label="Filter requests by category" onchange="filterRequests()">
+        <option value="all">All Categories</option>
+        <option value="online">Online Service Requests</option>
+        <option value="kiosk">Kiosk</option>
+      </select>
       <select id="reqStatusFilter" onchange="filterRequests()">
         <option value="all">All Statuses</option>
         <option value="Pending">Pending</option>
@@ -150,17 +156,71 @@
       <button type="button" class="action-btn" onclick="clearRequestFilters()">Clear Filters</button>
     </div>
 
-    <div class="table-container">
-      <div class="table-head req-grid">
-        <span>Request ID</span>
-        <span>Resident Name</span>
-        <span>Service Type</span>
-        <span>Submitted</span>
-        <span>Status</span>
-        <span>Actions</span>
+    <div id="adminOnlineRequestsWrap">
+      <div class="table-container">
+        <div class="table-head req-grid">
+          <span>Request ID</span>
+          <span>Resident Name</span>
+          <span>Service Type</span>
+          <span>Submitted</span>
+          <span>Status</span>
+          <span>Actions</span>
+        </div>
+        <div id="requestsTableBody"></div>
       </div>
-      <div id="requestsTableBody"></div>
     </div>
+
+    <div id="adminCompletedKioskSection" class="completed-kiosk-section">
+      <div class="completed-kiosk-header">
+        <div>
+          <h4 class="sub-header" style="margin:0;">Completed Requests <span class="kiosk-cat-badge">Category: Kiosk</span></h4>
+          <p class="section-note" style="margin:4px 0 0;">Kiosk requests marked as Done Request appear here.</p>
+        </div>
+        <span id="completedKioskCountPill" class="kiosk-count-pill">0 Completed</span>
+      </div>
+      <div class="table-container kiosk-table-container">
+        <div class="table-head kiosk-table-head">
+          <span>Queue / Ref</span>
+          <span>Applicant</span>
+          <span>Contact &amp; Address</span>
+          <span>Requested Document(s)</span>
+          <span>Purpose &amp; Details</span>
+          <span>Completed</span>
+        </div>
+        <div id="completedKioskTable"></div>
+      </div>
+      <div id="completedKioskPagination" class="pagination-bar"></div>
+    </div>
+  </div>
+
+  <!-- ==================== KIOSK REQUESTS ==================== -->
+  <div id="section-kiosk" class="page-section">
+    <h3 class="section-header">Kiosk Requests</h3>
+
+    <div class="kiosk-info-banner">
+      <span>Search pending walk-in &amp; self-service kiosk submissions by Queue No., Reference Code, Resident Name, Contact, Document, Address, or Purpose. Click <strong>Done Request</strong> once served to move it to Completed Requests (Category: Kiosk).</span>
+      <span id="kioskCountPill" class="kiosk-count-pill">0 Kiosk Requests</span>
+    </div>
+
+    <div class="filters request-search">
+      <input id="kioskSearchInput" type="search" placeholder="Search kiosk requests by Queue No. (e.g. K-001), Reference, Name, Contact, Document, or Purpose..." autocomplete="off">
+    </div>
+
+    <div id="kioskNoticeBox" class="kiosk-notice-box" style="display:none;"></div>
+
+    <div class="table-container kiosk-table-container">
+      <div class="table-head kiosk-table-head has-action">
+        <span>Queue / Ref</span>
+        <span>Applicant</span>
+        <span>Contact &amp; Address</span>
+        <span>Requested Document(s)</span>
+        <span>Purpose &amp; Details</span>
+        <span>Submitted</span>
+        <span>Action</span>
+      </div>
+      <div id="kioskTable"></div>
+    </div>
+    <div id="kioskPagination" class="pagination-bar"></div>
   </div>
 
   <!-- ==================== SERVICES ==================== -->

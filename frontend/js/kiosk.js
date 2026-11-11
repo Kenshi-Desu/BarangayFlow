@@ -2,8 +2,8 @@
  * kiosk.js — BarangayFlow Self-Service Document Kiosk
  *
  * Works seamlessly both as a public/walk-in self-service kiosk (no login needed)
- * and when signed in (auto-fills resident profile, merges live Firestore services,
- * and saves kiosk requests directly to Firestore for online tracking).
+ * and when signed in (auto-fills resident profile and merges live Firestore services).
+ * All kiosk tickets are saved to Firestore `kioskRequests` for Barangay Staff lookup.
  */
 
 import { auth, db } from "./firebase.js";
@@ -466,11 +466,11 @@ async function syncAuthenticatedContext(user) {
       if (addrEl && !addrEl.value && u.address) addrEl.value = u.address;
 
       if (statusBar) {
-        statusBar.innerHTML = `<span>Signed in as <strong>${esc(fullName || user.email)}</strong> — Your profile information is pre-filled and your ticket will also sync to your BarangayFlow Requests.</span>`;
+        statusBar.innerHTML = `<span>Signed in as <strong>${esc(fullName || user.email)}</strong> — Your profile information is pre-filled. Present your kiosk queue ticket at the Barangay Hall counter.</span>`;
         statusBar.classList.remove("hidden");
       }
     } else if (state.isStaffUser && statusBar) {
-      statusBar.innerHTML = `<span>Barangay Kiosk Desk Mode (<strong>${esc(user.email)}</strong>) — Walk-in tickets submitted here will be saved directly to BarangayFlow Requests.</span>`;
+      statusBar.innerHTML = `<span>Barangay Kiosk Desk Mode (<strong>${esc(user.email)}</strong>) — Walk-in tickets submitted here will be saved for Barangay Staff kiosk lookup.</span>`;
       statusBar.classList.remove("hidden");
     }
 
@@ -1193,51 +1193,51 @@ async function handleKioskSubmit(e) {
     const refCode = `BF-${dateStamp}-${queueNumber}`;
     const issuedAt = new Date().toISOString();
     const withinHours = isWithinWorkingHours();
-    const firestoreRequestIds = [];
+    let kioskDocId = "";
+    let syncedToFirestore = false;
 
-    // If user is signed in, record each inquired document in Firestore requests
-    if (state.currentUser) {
-      const combinedNotes = [
+    // Record every kiosk submission (walk-in or signed-in) for Barangay Staff lookup
+    try {
+      const kioskDocRef = await addDoc(collection(db, "kioskRequests"), {
+        source: "kiosk",
+        status: "Pending",
+        queueNumber,
+        kioskReference: refCode,
+        serviceType: selected.map(d => d.name).join(", "),
+        documents: selected.map(d => ({
+          id: d.id,
+          serviceId: d.serviceId || d.id,
+          name: d.name,
+          fee: Number(d.fee) || 0,
+          processingLabel: d.processingLabel || "",
+          windowLabel: d.windowLabel || ""
+        })),
+        totalFee: getTotalFee(selected),
+        windowLabel: getWindowSummary(selected),
+        fullName,
+        contact,
+        address,
+        age,
+        civilStatus,
+        claimMode,
+        representativeName: claimMode === "Representative" ? repName : "",
+        purpose,
         notes,
-        claimMode === "Representative" ? `Authorized Representative: ${repName}` : "",
-        extraData.ftjEducation ? `Education: ${extraData.ftjEducation}` : "",
-        extraData.birthdate ? `DOB: ${extraData.birthdate}` : "",
-        extraData.emergencyContact ? `Emergency Contact: ${extraData.emergencyContact}` : "",
-        extraData.patientName ? `Patient: ${extraData.patientName}` : "",
-        extraData.hospital ? `Hospital: ${extraData.hospital}` : "",
-        extraData.incidentSummary ? `Incident (${extraData.incidentDate || "N/A"}): ${extraData.incidentSummary}` : ""
-      ].filter(Boolean).join(" | ");
-
-      for (const docItem of selected) {
-        try {
-          const docRef = await addDoc(collection(db, "requests"), {
-            userId: state.currentUser.uid,
-            serviceId: docItem.serviceId || docItem.id,
-            serviceType: docItem.name,
-            fullName,
-            contact,
-            address,
-            age,
-            civilStatus,
-            purpose,
-            notes: combinedNotes,
-            businessName: extraData.businessName || "",
-            businessNature: extraData.businessNature || "",
-            businessAddress: extraData.businessAddress || "",
-            status: "Pending",
-            source: "kiosk",
-            queueNumber,
-            kioskReference: refCode,
-            docVerification: "Pending",
-            docInvalidReason: "",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-          firestoreRequestIds.push(docRef.id);
-        } catch (fsErr) {
-          console.warn("[Kiosk] Could not sync request to Firestore:", fsErr?.message || fsErr);
-        }
-      }
+        extraData,
+        withinHours,
+        submittedMode: state.currentUser ? (state.isStaffUser ? "staff_desk" : "signed_in") : "walk_in",
+        createdAt: serverTimestamp()
+      });
+      kioskDocId = kioskDocRef.id;
+      syncedToFirestore = true;
+    } catch (fsErr) {
+      console.warn("[Kiosk] Could not save request to Firestore kioskRequests:", fsErr?.message || fsErr);
+      showToast(
+        fsErr?.code === "permission-denied"
+          ? "Ticket issued locally, but Firestore rules for 'kioskRequests' are not deployed yet."
+          : "Ticket issued locally, but could not sync to Firestore.",
+        "warning"
+      );
     }
 
     const ticket = {
@@ -1267,7 +1267,8 @@ async function handleKioskSubmit(e) {
         processingLabel: d.processingLabel,
         windowLabel: d.windowLabel
       })),
-      firestoreRequestIds
+      kioskDocId,
+      syncedToFirestore
     };
 
     state.lastTicket = ticket;
@@ -1311,24 +1312,19 @@ function renderTicketView(ticket) {
     }
   }
 
-  // Online Firestore sync banner
+  // Staff kiosk log confirmation banner (kiosk tickets are staff-lookup only)
   const syncBanner = document.getElementById("ticketSyncBanner");
   const syncText   = document.getElementById("ticketSyncText");
   const trackBtn   = document.getElementById("trackOnlineBtn");
-  if (ticket.firestoreRequestIds && ticket.firestoreRequestIds.length > 0) {
-    const firstId = ticket.firestoreRequestIds[0];
+  if (ticket.syncedToFirestore) {
     if (syncBanner && syncText) {
-      syncText.textContent = `Saved to BarangayFlow online queue (Request ID: ${firstId}). Present your Queue Number or Request ID at the counter.`;
+      syncText.textContent = `Logged for Barangay Staff counter lookup (Queue: ${ticket.queueNumber} • Ref: ${ticket.refCode}). Present this ticket at ${ticket.windowLabel}.`;
       syncBanner.classList.remove("hidden");
-    }
-    if (trackBtn) {
-      trackBtn.href = `track.html?id=${encodeURIComponent(firstId)}`;
-      trackBtn.classList.remove("hidden");
     }
   } else {
     syncBanner?.classList.add("hidden");
-    trackBtn?.classList.add("hidden");
   }
+  trackBtn?.classList.add("hidden");
 
   // Extra document-specific details
   const extraEl = document.getElementById("ticketExtraDetails");
