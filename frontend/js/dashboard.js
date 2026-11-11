@@ -16,7 +16,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   collection, query, where, onSnapshot,
-  doc, getDoc, orderBy, deleteDoc
+  doc, getDoc, orderBy, deleteDoc, updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ─────────────────────────────────────────────
@@ -43,6 +43,41 @@ let annUnsubscriber = null;
 
 const PAGE_SIZE = 5;
 let currentPage = 1;
+const PROFILE_SECTORS = [
+  "General Resident/Citizen",
+  "Senior Citizen",
+  "Person with Disability (PWD)",
+  "Student",
+  "Solo Parent",
+  "4Ps Beneficiary",
+  "Other"
+];
+const PROFILE_ID_MAX_BYTES = 2 * 1024 * 1024;
+const PROFILE_ID_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const PROFILE_ID_UPLOAD_URL = "https://api.cloudinary.com/v1_1/dqlei56w3/auto/upload";
+const PROFILE_ID_UPLOAD_PRESET = "barangayflow_docs";
+
+async function uploadProfileId(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", PROFILE_ID_UPLOAD_PRESET);
+  formData.append("folder", "barangay_resident_ids");
+
+  const response = await fetch(PROFILE_ID_UPLOAD_URL, { method: "POST", body: formData });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("The ID upload service returned an unreadable response.");
+  }
+  if (!response.ok) {
+    throw new Error(result?.error?.message || `ID upload failed (${response.status}).`);
+  }
+  if (!result.secure_url || !result.public_id) {
+    throw new Error("The ID upload service did not return a valid file.");
+  }
+  return { secureUrl: result.secure_url, publicId: result.public_id };
+}
 
 // ─────────────────────────────────────────────
 //  TOAST
@@ -67,25 +102,31 @@ function showToast(msg, type = "info") {
 window.showTab = function (tabName) {
   const dashTab = document.getElementById("tab-dashboard");
   const annTab  = document.getElementById("tab-announcements");
+  const profileTab = document.getElementById("tab-profile");
   const navDash = document.getElementById("nav-dash");
   const navAnn  = document.getElementById("nav-ann");
+  const navProfile = document.getElementById("nav-profile");
 
   // Close hamburger on nav tap
   document.querySelector(".nav-right")?.classList.remove("open");
   document.querySelector(".nav-toggle")?.setAttribute("aria-expanded", "false");
 
+  if (dashTab) dashTab.style.display = tabName === "dashboard" ? "block" : "none";
+  if (annTab) annTab.style.display = tabName === "announcements" ? "block" : "none";
+  if (profileTab) profileTab.style.display = tabName === "profile" ? "block" : "none";
+  navDash?.classList.toggle("active", tabName === "dashboard");
+  navAnn?.classList.toggle("active", tabName === "announcements");
+  navProfile?.classList.toggle("active", tabName === "profile");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
   if (tabName === "dashboard") {
-    if (dashTab) dashTab.style.display = "block";
-    if (annTab)  annTab.style.display  = "none";
-    navDash?.classList.add("active");
-    navAnn?.classList.remove("active");
-  } else {
-    if (dashTab) dashTab.style.display = "none";
-    if (annTab)  annTab.style.display  = "block";
-    navDash?.classList.remove("active");
-    navAnn?.classList.add("active");
-    listenToAnnouncements();
+    return;
   }
+  if (tabName === "announcements") {
+    listenToAnnouncements();
+    return;
+  }
+  if (tabName === "profile") loadProfileEditor();
 };
 
 // ─────────────────────────────────────────────
@@ -151,10 +192,185 @@ async function loadUser(uid) {
     if (snap.exists()) {
       const data   = snap.data();
       const nameEl = document.getElementById("userName");
-      if (nameEl) nameEl.innerText = `${data.firstName || ""} ${data.lastName || ""}`.trim();
+      if (nameEl) nameEl.innerText = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(" ");
     }
-  } catch { /* silent */ }
+  } catch (err) {
+    console.error("Failed to load resident profile:", err);
+    showToast("Could not load your profile information.", "error");
+  }
 }
+
+window.openProfileEditor = () => window.showTab("profile");
+
+async function loadProfileEditor() {
+  const user = auth.currentUser;
+  const form = document.getElementById("profileForm");
+  const error = document.getElementById("profileError");
+  if (!user || !form) {
+    if (error) error.textContent = "Could not load your profile. Please sign in again.";
+    return;
+  }
+
+  if (error) error.textContent = "";
+  const saveBtn = document.getElementById("profileSaveBtn");
+  const statusBox = document.getElementById("profileReviewStatus");
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Loading…"; }
+
+  try {
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists()) throw new Error("Your resident profile could not be found.");
+    const data = snap.data();
+    const changeRequest = data.profileChangeRequest || null;
+    const displayedProfile = changeRequest?.status === "rejected" || changeRequest?.status === "pending"
+      ? changeRequest
+      : data;
+    const setValue = (id, value) => {
+      const input = document.getElementById(id);
+      if (input) input.value = value || "";
+    };
+    setValue("profileFirstName", displayedProfile.firstName);
+    setValue("profileMiddleName", displayedProfile.middleName);
+    setValue("profileLastName", displayedProfile.lastName);
+    setValue("profileGender", displayedProfile.gender);
+    setValue("profileCivilStatus", displayedProfile.civilStatus);
+    setValue("profileBirthDate", displayedProfile.birthDate);
+    setValue("profilePlaceOfBirth", displayedProfile.placeOfBirth);
+    setValue("profilePhone", displayedProfile.phone);
+    setValue("profileLandline", displayedProfile.landline);
+    setValue("profileAddress", displayedProfile.address);
+    const email = document.getElementById("profileEmail");
+    if (email) email.textContent = data.email || user.email || "—";
+    const sectors = Array.isArray(displayedProfile.sector) ? displayedProfile.sector : displayedProfile.sector ? [displayedProfile.sector] : [];
+    document.querySelectorAll('input[name="profileSector"]').forEach(input => {
+      input.checked = sectors.includes(input.value);
+    });
+    const birthDate = document.getElementById("profileBirthDate");
+    if (birthDate) {
+      const now = new Date();
+      birthDate.max = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    }
+    const idInput = document.getElementById("profileIdFile");
+    if (idInput) idInput.value = "";
+    if (statusBox) {
+      statusBox.className = "profile-review-status";
+      statusBox.textContent = "";
+      if (changeRequest?.status === "pending") {
+        statusBox.classList.add("pending");
+        statusBox.textContent = `Your information and replacement ID (${changeRequest.idFileName || "ID file"}) are waiting for barangay admin approval. Your current approved information remains in use.`;
+      } else if (changeRequest?.status === "rejected") {
+        statusBox.classList.add("rejected");
+        statusBox.textContent = `Your previous update was not approved${changeRequest.rejectionReason ? `: ${changeRequest.rejectionReason}` : ""}. Correct the information and submit a new ID for review.`;
+      }
+    }
+    const locked = changeRequest?.status === "pending";
+    setProfileFormLocked(form, locked);
+    if (saveBtn) saveBtn.textContent = locked ? "Waiting for Approval" : "Submit for Approval";
+  } catch (err) {
+    console.error("Failed to open resident profile editor:", err);
+    if (error) error.textContent = err instanceof Error ? err.message : "Could not load your profile.";
+  } finally {
+    if (saveBtn && saveBtn.textContent === "Loading…") {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Submit for Approval";
+    }
+  }
+}
+
+function setProfileFormLocked(form, locked) {
+  form.querySelectorAll("input, select, button[type='submit']").forEach(control => {
+    control.disabled = locked;
+  });
+}
+
+document.getElementById("profileForm")?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const user = auth.currentUser;
+  const error = document.getElementById("profileError");
+  const saveBtn = document.getElementById("profileSaveBtn");
+  if (error) error.textContent = "";
+  if (!user) {
+    if (error) error.textContent = "Your session has expired. Please sign in again.";
+    return;
+  }
+  const idFile = document.getElementById("profileIdFile")?.files?.[0];
+  if (!idFile) {
+    if (error) error.textContent = "Upload a new government-issued ID to submit your information for approval.";
+    document.getElementById("profileIdFile")?.focus();
+    return;
+  }
+  if (!PROFILE_ID_TYPES.includes(idFile.type)) {
+    if (error) error.textContent = "ID must be a JPG, PNG, WEBP, or PDF file.";
+    return;
+  }
+  if (idFile.size > PROFILE_ID_MAX_BYTES) {
+    if (error) error.textContent = "ID file must be 2 MB or smaller.";
+    return;
+  }
+
+  const sector = Array.from(document.querySelectorAll('input[name="profileSector"]:checked'))
+    .map(input => input.value);
+  if (!sector.length || sector.some(value => !PROFILE_SECTORS.includes(value))) {
+    if (error) error.textContent = "Select at least one resident sector.";
+    document.querySelector('input[name="profileSector"]')?.focus();
+    return;
+  }
+
+  const address = document.getElementById("profileAddress")?.value.trim() || "";
+  if (!/sta\.?\s*rita/i.test(address) || !/olongapo/i.test(address)) {
+    if (error) error.textContent = "Address must be within Barangay Sta. Rita, Olongapo City.";
+    document.getElementById("profileAddress")?.focus();
+    return;
+  }
+
+  const profile = {
+    firstName: document.getElementById("profileFirstName")?.value.trim() || "",
+    middleName: document.getElementById("profileMiddleName")?.value.trim() || "",
+    lastName: document.getElementById("profileLastName")?.value.trim() || "",
+    gender: document.getElementById("profileGender")?.value || "",
+    civilStatus: document.getElementById("profileCivilStatus")?.value || "",
+    birthDate: document.getElementById("profileBirthDate")?.value || "",
+    placeOfBirth: document.getElementById("profilePlaceOfBirth")?.value.trim() || "",
+    phone: document.getElementById("profilePhone")?.value.trim() || "",
+    landline: document.getElementById("profileLandline")?.value.trim() || "",
+    address,
+    sector,
+  };
+
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
+  try {
+    const uploadedId = await uploadProfileId(idFile);
+    await updateDoc(doc(db, "users", user.uid), {
+      profileChangeRequest: {
+        ...profile,
+        idPhotoUrl: uploadedId.secureUrl,
+        idPhotoPublicId: uploadedId.publicId,
+        idFileName: idFile.name,
+        status: "pending",
+        submittedAt: serverTimestamp()
+      }
+    });
+    const statusBox = document.getElementById("profileReviewStatus");
+    if (statusBox) {
+      statusBox.className = "profile-review-status pending";
+      statusBox.textContent = "Your information and replacement ID were submitted successfully and are waiting for barangay admin approval. Your current approved information remains active until the review is complete.";
+    }
+    setProfileFormLocked(document.getElementById("profileForm"), true);
+    if (saveBtn) saveBtn.textContent = "Waiting for Approval";
+    showToast("Your information update was submitted for approval.", "success");
+  } catch (err) {
+    console.error("Failed to update resident profile:", err);
+    if (error) {
+      error.textContent = err?.code === "permission-denied"
+        ? "Your update was not submitted because Firestore denied the request. Ask the project administrator to deploy the latest root firestore.rules file, then try again."
+        : err instanceof Error ? err.message : "Could not submit your information. Please try again.";
+    }
+  } finally {
+    if (saveBtn && saveBtn.textContent !== "Waiting for Approval") {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Submit for Approval";
+    }
+  }
+});
 
 // ─────────────────────────────────────────────
 //  DELETE REQUEST

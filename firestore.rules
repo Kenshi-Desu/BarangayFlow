@@ -34,24 +34,110 @@ service cloud.firestore {
         && adminData().role in ["staff", "admin", "it"];
     }
 
+    function validResidentSectors(sectors) {
+      return sectors is list
+        && sectors.size() > 0
+        && sectors.size() <= 7
+        && sectors.toSet().hasOnly([
+          "General Resident/Citizen", "Senior Citizen",
+          "Person with Disability (PWD)", "Student", "Solo Parent",
+          "4Ps Beneficiary", "Other"
+        ]);
+    }
+
+    function validResidentIdUrl(url) {
+      return url is string
+        && url.matches('^https://res[.]cloudinary[.]com/dqlei56w3/.*$');
+    }
+
+    function validResidentRegistration() {
+      let resident = request.resource.data;
+      return resident.keys().hasOnly([
+          "firstName", "middleName", "lastName", "gender", "civilStatus",
+          "birthDate", "placeOfBirth", "sector", "email", "phone", "landline",
+          "address", "emailVerified", "active", "accountStatus", "idPhotoUrl",
+          "idPhotoPublicId", "idFileName", "createdAt"
+        ])
+        && resident.keys().hasAll([
+          "firstName", "middleName", "lastName", "gender", "civilStatus",
+          "birthDate", "placeOfBirth", "sector", "email", "phone", "landline",
+          "address", "emailVerified", "active", "accountStatus", "idPhotoUrl",
+          "idPhotoPublicId", "idFileName", "createdAt"
+        ])
+        && resident.active == false
+        && resident.accountStatus == "pending_verification"
+        && resident.emailVerified == true
+        && resident.createdAt == request.time
+        && resident.firstName is string
+        && resident.middleName is string
+        && resident.lastName is string
+        && resident.gender is string
+        && resident.civilStatus is string
+        && resident.birthDate is string
+        && resident.placeOfBirth is string
+        && resident.email is string
+        && resident.phone is string
+        && resident.landline is string
+        && resident.address is string
+        && validResidentSectors(resident.sector)
+        && validResidentIdUrl(resident.idPhotoUrl)
+        && resident.idPhotoPublicId is string
+        && resident.idFileName is string;
+    }
+
+    function validResidentProfileChangeRequest() {
+      let profile = request.resource.data.profileChangeRequest;
+      return profile is map
+        && profile.keys().hasOnly([
+          "firstName", "middleName", "lastName", "gender", "civilStatus",
+          "birthDate", "placeOfBirth", "phone", "landline", "address",
+          "sector", "idPhotoUrl", "idPhotoPublicId", "idFileName",
+          "status", "submittedAt"
+        ])
+        && profile.keys().hasAll([
+          "firstName", "middleName", "lastName", "gender", "civilStatus",
+          "birthDate", "placeOfBirth", "phone", "landline", "address",
+          "sector", "idPhotoUrl", "idPhotoPublicId", "idFileName",
+          "status", "submittedAt"
+        ])
+        && profile.firstName is string
+        && profile.middleName is string
+        && profile.lastName is string
+        && profile.gender is string
+        && profile.civilStatus is string
+        && profile.birthDate is string
+        && profile.placeOfBirth is string
+        && profile.phone is string
+        && profile.landline is string
+        && profile.address is string
+        && validResidentSectors(profile.sector)
+        && validResidentIdUrl(profile.idPhotoUrl)
+        && profile.idPhotoPublicId is string
+        && profile.idFileName is string
+        && profile.status == "pending"
+        && profile.submittedAt == request.time;
+    }
+
     // ═══════════════════════════════════════════════════════
     //  USERS
     //  Residents own their profile; staff+ can read all.
     // ═══════════════════════════════════════════════════════
     match /users/{userId} {
       allow read:   if isOwner(userId) || isStaffOrAbove();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) && validResidentRegistration();
 
-      // Residents can update their own profile BUT cannot touch
-      // verification-controlled fields (set only by admin on approval/rejection).
+      // Residents can only submit a proposed profile with a replacement ID.
+      // Authoritative profile and verification fields remain staff-controlled.
       allow update: if isStaffOrAbove()
         || (
           isOwner(userId)
-          && !("accountStatus"  in request.resource.data)
-          && !("active"         in request.resource.data)
-          && !("verifiedAt"     in request.resource.data)
-          && !("rejectedAt"     in request.resource.data)
-          && !("rejectionReason" in request.resource.data)
+          && (!("active" in resource.data) || resource.data.active == true)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["profileChangeRequest"])
+          && validResidentProfileChangeRequest()
+          && (
+            !("profileChangeRequest" in resource.data)
+            || resource.data.profileChangeRequest.status != "pending"
+          )
         );
 
       allow delete: if isAdmin() || isIT();

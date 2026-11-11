@@ -26,6 +26,7 @@
   <div class="nav-right">
     <a href="#" id="nav-dash" class="active" onclick="showTab('dashboard')" data-i18n="nav_dashboard">Dashboard</a>
     <a href="#" id="nav-ann" onclick="showTab('announcements')" data-i18n="nav_announcements" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
+    <a href="#" id="nav-profile" onclick="showTab('profile'); return false;">My Profile</a>
     <a href="/request.html" data-i18n="nav_new_request">New Request</a>
     <a href="#" id="langToggleBtn" onclick="toggleLang(); return false;" data-i18n="nav_lang"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Filipino</a>
     <a href="#" onclick="logout(); return false;" data-i18n="nav_logout" style="display:inline-flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
@@ -42,7 +43,10 @@
         <p>Welcome back,</p>
         <h2 id="userName">Loading...</h2>
       </div>
-      <a href="/request.html" class="new-btn">+ New Request</a>
+      <div class="top-actions">
+        <button type="button" class="profile-btn" onclick="showTab('profile')">Edit Profile</button>
+        <a href="/request.html" class="new-btn">+ New Request</a>
+      </div>
     </div>
 
     <!-- Stat Cards -->
@@ -95,6 +99,79 @@
     <div id="announcementList">
       <p style="color:var(--muted);font-size:14px;">Fetching latest news...</p>
     </div>
+  </div>
+
+  <!-- RESIDENT PROFILE PAGE -->
+  <div id="tab-profile" class="profile-page" style="display:none;">
+    <div class="profile-page-header">
+      <div>
+        <p>Resident Account</p>
+        <h2>My Profile</h2>
+      </div>
+      <button type="button" class="profile-btn" onclick="showTab('dashboard')">Back to Dashboard</button>
+    </div>
+    <section class="profile-page-card" aria-labelledby="profilePageTitle">
+      <div class="profile-page-title">
+        <h3 id="profilePageTitle">Update Your Information</h3>
+        <p class="profile-note">Changes require a new government-issued ID and barangay admin approval. Your current verified information remains active until the changes are approved.</p>
+      </div>
+      <form id="profileForm" class="profile-form">
+        <div class="profile-form-body">
+          <div class="profile-email">Account email: <strong id="profileEmail">—</strong></div>
+          <div id="profileReviewStatus" class="profile-review-status" role="status" aria-live="polite"></div>
+          <div class="profile-grid">
+            <label>First Name<input id="profileFirstName" type="text" autocomplete="given-name" required></label>
+            <label>Middle Name<input id="profileMiddleName" type="text" autocomplete="additional-name"></label>
+            <label>Last Name<input id="profileLastName" type="text" autocomplete="family-name" required></label>
+            <label>Gender
+              <select id="profileGender" required>
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </label>
+            <label>Civil Status
+              <select id="profileCivilStatus" required>
+                <option value="">Select civil status</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Widowed">Widowed</option>
+                <option value="Separated">Separated</option>
+                <option value="Divorced">Divorced</option>
+              </select>
+            </label>
+            <label>Date of Birth<input id="profileBirthDate" type="date" required></label>
+            <label class="profile-full">Place of Birth<input id="profilePlaceOfBirth" type="text" required></label>
+            <label>Mobile Number<input id="profilePhone" type="tel" inputmode="numeric" pattern="09[0-9]{9}" maxlength="11" autocomplete="tel" required></label>
+            <label>Landline <span class="profile-optional">(Optional)</span><input id="profileLandline" type="tel"></label>
+            <label class="profile-full">Full Residence Address
+              <input id="profileAddress" type="text" placeholder="House no., street, Purok, Barangay Sta. Rita, Olongapo City" required>
+            </label>
+          </div>
+          <fieldset class="profile-sectors">
+            <legend>Resident Sectors <span class="profile-optional">(select all that apply)</span></legend>
+            <div class="profile-sector-options">
+              <label><input type="checkbox" name="profileSector" value="General Resident/Citizen"> General Resident/Citizen</label>
+              <label><input type="checkbox" name="profileSector" value="Senior Citizen"> Senior Citizen</label>
+              <label><input type="checkbox" name="profileSector" value="Person with Disability (PWD)"> Person with Disability (PWD)</label>
+              <label><input type="checkbox" name="profileSector" value="Student"> Student</label>
+              <label><input type="checkbox" name="profileSector" value="Solo Parent"> Solo Parent</label>
+              <label><input type="checkbox" name="profileSector" value="4Ps Beneficiary"> 4Ps Beneficiary</label>
+              <label><input type="checkbox" name="profileSector" value="Other"> Other</label>
+            </div>
+          </fieldset>
+          <label class="profile-id-upload">Replacement Government ID
+            <input id="profileIdFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+            <span class="profile-optional">JPG, PNG, WEBP, or PDF; maximum 2 MB. Required for every information update.</span>
+          </label>
+          <p id="profileError" class="profile-error" role="alert"></p>
+        </div>
+        <div class="profile-page-actions">
+          <button type="submit" class="profile-save-btn" id="profileSaveBtn">Submit for Approval</button>
+        </div>
+      </form>
+    </section>
   </div>
 
 </div>

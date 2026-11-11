@@ -132,31 +132,24 @@
       <select id="reqServiceFilter" aria-label="Filter requests by service" onchange="filterRequests()">
         <option value="">All Services</option>
       </select>
-      <select id="reqBarangayFilter" aria-label="Filter requests by barangay" onchange="filterRequests()">
-        <option value="">All Barangays</option>
-      </select>
       <select id="reqSectorFilter" aria-label="Filter requests by resident sector" onchange="filterRequests()">
         <option value="">All Resident Sectors</option>
       </select>
-      <select id="reqVerificationFilter" aria-label="Filter requests by document verification" onchange="filterRequests()">
-        <option value="">All Document Verification Statuses</option>
-        <option value="Pending">Pending</option>
-        <option value="Verified">Verified</option>
-        <option value="Invalid">Invalid</option>
-        <option value="Not Submitted">Not Submitted</option>
-      </select>
-      <input id="reqDateFrom" type="date" aria-label="Requests from date" onchange="filterRequests()">
-      <input id="reqDateTo" type="date" aria-label="Requests to date" onchange="filterRequests()">
+      <input id="reqDate" type="date" aria-label="Filter requests by date" onchange="filterRequests()">
       <button type="button" class="action-btn" onclick="clearRequestFilters()">Clear Filters</button>
     </div>
 
-    <div class="table-container">
+    <div class="table-container req-table-container">
       <div class="table-head req-grid">
         <span>Request ID</span>
         <span>Resident Name</span>
         <span>Service Type</span>
+        <span>Sector</span>
+        <span>Contact</span>
+        <span>Address</span>
         <span>Submitted</span>
         <span>Status</span>
+        <span>Document</span>
         <span>Actions</span>
       </div>
       <div id="requestsTableBody"></div>
@@ -553,8 +546,8 @@
         <div style="width:40px;height:40px;border-radius:50%;background:#fef3c7;
                     display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><line x1="13" y1="10" x2="19" y2="10"/><line x1="13" y1="14" x2="17" y2="14"/></svg></div>
         <div>
-          <h3 style="margin:0;font-size:16px;font-weight:700;color:#111827;">Resident Registration Review</h3>
-          <p style="margin:0;font-size:12px;color:#6b7280;">Verify the details, resident sectors, and ID before approving</p>
+          <h3 id="residentReviewTitle" style="margin:0;font-size:16px;font-weight:700;color:#111827;">Resident Registration Review</h3>
+          <p id="residentReviewSubtitle" style="margin:0;font-size:12px;color:#6b7280;">Verify the details, resident sectors, and ID before approving</p>
         </div>
       </div>
       <button onclick="closeResidentReview()"
@@ -573,13 +566,13 @@
               onclick="rrDoApprove()"
               style="flex:1;min-width:120px;padding:11px;background:#16a34a;color:#fff;
                      border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approve Account
+        Approve Account
       </button>
       <button id="rrRejectBtn"
               onclick="rrDoReject()"
               style="flex:1;min-width:120px;padding:11px;background:#dc2626;color:#fff;
                      border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Reject Account
+        Reject Account
       </button>
       <button onclick="closeResidentReview()"
               style="width:100%;padding:10px;background:#f3f4f6;color:#374151;
