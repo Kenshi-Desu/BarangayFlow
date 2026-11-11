@@ -148,6 +148,22 @@ a { text-decoration:none; cursor:pointer; }
 .request-summary-cards { margin:12px 0 18px; }
 .request-summary-cards .card { padding:12px 14px; }
 .request-summary-cards .card h1 { font-size:22px; }
+.table-container.req-table-container { overflow-x:auto;overflow-y:hidden; }
+.req-table-container .table-head.req-grid,
+.req-table-container #requestsTableBody .row.req-grid {
+  display:grid;
+  grid-template-columns:90px minmax(150px,1.3fr) minmax(150px,1.2fr) minmax(150px,1.2fr)
+    minmax(120px,1fr) minmax(190px,1.5fr) 105px 145px 120px 130px;
+  align-items:center;
+  gap:0;
+  min-width:1400px;
+}
+.req-table-container .table-head.req-grid { padding:12px 8px; }
+.req-table-container .row.req-grid { padding:12px 8px; }
+.req-table-container .table-head.req-grid span,
+.req-table-container .row.req-grid > span { padding:0 8px; }
+.req-table-container .row.req-grid > span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.req-table-container .row.req-grid span[data-label]::before { display:none; }
 
 /* ── TABLE ─────────────────────────────────────────────────── */
 .table-container {

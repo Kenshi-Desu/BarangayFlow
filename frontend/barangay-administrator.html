@@ -132,31 +132,24 @@
       <select id="reqServiceFilter" aria-label="Filter requests by service" onchange="filterRequests()">
         <option value="">All Services</option>
       </select>
-      <select id="reqBarangayFilter" aria-label="Filter requests by barangay" onchange="filterRequests()">
-        <option value="">All Barangays</option>
-      </select>
       <select id="reqSectorFilter" aria-label="Filter requests by resident sector" onchange="filterRequests()">
         <option value="">All Resident Sectors</option>
       </select>
-      <select id="reqVerificationFilter" aria-label="Filter requests by document verification" onchange="filterRequests()">
-        <option value="">All Document Verification Statuses</option>
-        <option value="Pending">Pending</option>
-        <option value="Verified">Verified</option>
-        <option value="Invalid">Invalid</option>
-        <option value="Not Submitted">Not Submitted</option>
-      </select>
-      <input id="reqDateFrom" type="date" aria-label="Requests from date" onchange="filterRequests()">
-      <input id="reqDateTo" type="date" aria-label="Requests to date" onchange="filterRequests()">
+      <input id="reqDate" type="date" aria-label="Filter requests by date" onchange="filterRequests()">
       <button type="button" class="action-btn" onclick="clearRequestFilters()">Clear Filters</button>
     </div>
 
-    <div class="table-container">
+    <div class="table-container req-table-container">
       <div class="table-head req-grid">
         <span>Request ID</span>
         <span>Resident Name</span>
         <span>Service Type</span>
+        <span>Sector</span>
+        <span>Contact</span>
+        <span>Address</span>
         <span>Submitted</span>
         <span>Status</span>
+        <span>Document</span>
         <span>Actions</span>
       </div>
       <div id="requestsTableBody"></div>

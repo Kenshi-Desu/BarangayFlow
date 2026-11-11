@@ -317,16 +317,14 @@ function refreshRequestFilterOptions() {
   const archivedOptions = [...new Set(allRequestsData.map(r => r.serviceType).filter(name => name && !catalogNames.has(name)))]
     .map(name => ({ value: `legacy:${name}`, label: `${name} (not in service list)` }));
   setRequestFilterOptions("reqServiceFilter", "All Services", [...catalogOptions, ...archivedOptions]);
-  setRequestFilterOptions("reqBarangayFilter", "All Barangays", allRequestsData.map(r => {
-    const resident = requestResidentsById.get(r.userId) || {};
-    const value = getResidentBarangay({ address: r.address || resident.address });
-    return { value, label: value };
-  }));
   setRequestFilterOptions(
     "reqSectorFilter",
     "All Resident Sectors",
-    allRequestsData.flatMap(r => getResidentSectors(requestResidentsById.get(r.userId) || {})
-      .map(value => ({ value, label: value })))
+    [
+      ...RESIDENT_SECTOR_OPTIONS.map(value => ({ value, label: value })),
+      ...allRequestsData.flatMap(r => getResidentSectors(requestResidentsById.get(r.userId) || {})
+        .map(value => ({ value, label: value })))
+    ]
   );
 }
 
@@ -369,13 +367,23 @@ function renderRequestsPage() {
   const start = (reqCurrentPage - 1) * REQ_PAGE_SIZE;
   const paginated = reqFilteredData.slice(start, start + REQ_PAGE_SIZE);
   el.innerHTML = paginated.map(r => {
+    const resident = requestResidentsById.get(r.userId) || {};
     const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString("en-PH") : "—";
-    return `<div class="row">
-      <span class="mono">${r.id.slice(0,8)}</span>
-      <span>${r.fullName || "N/A"}</span>
-      <span>${r.serviceType || "—"}</span>
-      <span>${date}</span>
-      <span class="status ${getStatusClass(r.status)}"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"4\" cy=\"4\" r=\"4\" fill=\"currentColor\"/></svg>${r.status || "—"}</span>
+    const fullName = r.fullName || [resident.firstName, resident.middleName, resident.lastName].filter(Boolean).join(" ") || "N/A";
+    const address = r.address || resident.address || "—";
+    const sector = getResidentSectors(resident).join(", ") || "—";
+    const contact = r.contact || resident.phone || "—";
+    const documentStatus = getRequestDocumentStatus(r);
+    return `<div class="row req-grid">
+      <span class="mono" title="${escapeHtmlText(r.id)}">${escapeHtmlText(r.id.slice(0,8))}</span>
+      <span title="${escapeHtmlText(fullName)}">${escapeHtmlText(fullName)}</span>
+      <span title="${escapeHtmlText(r.serviceType || "")}">${escapeHtmlText(r.serviceType || "—")}</span>
+      <span title="${escapeHtmlText(sector)}">${escapeHtmlText(sector)}</span>
+      <span title="${escapeHtmlText(contact)}">${escapeHtmlText(contact)}</span>
+      <span title="${escapeHtmlText(address)}">${escapeHtmlText(address)}</span>
+      <span>${escapeHtmlText(date)}</span>
+      <span class="status ${getStatusClass(r.status)}"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"4\" cy=\"4\" r=\"4\" fill=\"currentColor\"/></svg>${escapeHtmlText(r.status || "—")}</span>
+      <span>${escapeHtmlText(documentStatus)}</span>
       <span><button class="action-btn" onclick="openRequestModal('${r.id}')">View / Update</button></span>
     </div>`;
   }).join("");
@@ -413,11 +421,8 @@ window.filterRequests = () => {
   const search = (document.getElementById("reqSearch")?.value || "").trim().toLowerCase();
   const statusF = document.getElementById("reqStatusFilter")?.value || "all";
   const serviceF = document.getElementById("reqServiceFilter")?.value || "";
-  const barangayF = document.getElementById("reqBarangayFilter")?.value || "";
   const sectorF = document.getElementById("reqSectorFilter")?.value || "";
-  const verificationF = document.getElementById("reqVerificationFilter")?.value || "";
-  const dateFrom = document.getElementById("reqDateFrom")?.value || "";
-  const dateTo = document.getElementById("reqDateTo")?.value || "";
+  const dateF = document.getElementById("reqDate")?.value || "";
   const filtered = allRequestsData.filter(r => {
     const resident = requestResidentsById.get(r.userId) || {};
     const searchText = [
@@ -434,18 +439,13 @@ window.filterRequests = () => {
     const matchService = !serviceF || (serviceF.startsWith("legacy:")
       ? r.serviceType === serviceF.slice("legacy:".length)
       : r.serviceId === serviceF || (!!selectedService && r.serviceType === selectedService.name));
-    const matchBarangay = !barangayF
-      || getResidentBarangay({ address: r.address || resident.address }) === barangayF;
     const matchSector = !sectorF || getResidentSectors(resident).includes(sectorF);
-    const matchVerification = !verificationF || getRequestDocumentStatus(r) === verificationF;
     const requestDate = r.createdAt?.toDate ? r.createdAt.toDate() : null;
     const dateValue = requestDate
       ? `${requestDate.getFullYear()}-${String(requestDate.getMonth() + 1).padStart(2, "0")}-${String(requestDate.getDate()).padStart(2, "0")}`
       : "";
-    const matchDateFrom = !dateFrom || (dateValue && dateValue >= dateFrom);
-    const matchDateTo = !dateTo || (dateValue && dateValue <= dateTo);
-    return matchSearch && matchStatus && matchService && matchBarangay
-      && matchSector && matchVerification && matchDateFrom && matchDateTo;
+    const matchDate = !dateF || dateValue === dateF;
+    return matchSearch && matchStatus && matchService && matchSector && matchDate;
   });
   reqFilteredData = filtered;
   reqCurrentPage = 1;
@@ -453,11 +453,11 @@ window.filterRequests = () => {
 };
 
 window.clearRequestFilters = () => {
-  ["reqSearch", "reqDateFrom", "reqDateTo"].forEach(id => {
+  ["reqSearch", "reqDate"].forEach(id => {
     const input = document.getElementById(id);
     if (input) input.value = "";
   });
-  ["reqServiceFilter", "reqBarangayFilter", "reqSectorFilter", "reqVerificationFilter"].forEach(id => {
+  ["reqServiceFilter", "reqSectorFilter"].forEach(id => {
     const select = document.getElementById(id);
     if (select) select.value = "";
   });
