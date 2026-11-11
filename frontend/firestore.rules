@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================
+    // HELPER FUNCTIONS
+    // =====================================================
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function adminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    function adminExists() {
+      return isAuth() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return adminExists() && adminData().role == role;
+    }
+
+    function isAdmin() { return hasRole("admin"); }
+    function isIT()    { return hasRole("it");    }
+    function isStaff() { return hasRole("staff"); }
+
+    function isStaffOrAbove() {
+      return adminExists() && adminData().role in ["staff", "admin", "it"];
+    }
+
+    // =====================================================
+    // USERS — residents own their doc; staff+ read all
+    // =====================================================
+    match /users/{userId} {
+      allow read:   if isOwner(userId) || isStaffOrAbove();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isStaffOrAbove();
+      allow delete: if isAdmin() || isIT();
+    }
+
+    // =====================================================
+    // ADMINS — self read; admin/IT read all; IT write all
+    // =====================================================
+    match /admins/{adminId} {
+      allow read:   if isOwner(adminId) || isAdmin() || isIT();
+      allow create: if isIT();
+      allow update: if isIT() || (isAdmin() && !("role" in request.resource.data));
+      allow delete: if isIT();
+    }
+
+    // =====================================================
+    // REQUESTS — owner CRUD own; staff+ read/update
+    // Public can read a single request by exact ID (for tracker page)
+    // =====================================================
+    match /requests/{requestId} {
+      allow read: if (
+        // Unauthenticated public tracker — read single doc by ID only
+        !isAuth()
+      ) || isAuth() && (
+        resource.data.userId == request.auth.uid || isStaffOrAbove()
+      );
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && (
+        (resource.data.userId == request.auth.uid && resource.data.status == "Pending") ||
+        isStaffOrAbove()
+      );
+      allow delete: if isAuth() && (
+        (resource.data.userId == request.auth.uid && resource.data.status == "Pending") ||
+        isAdmin() || isIT()
+      );
+    }
+
+    // =====================================================
+    // SERVICES — authenticated read; admin write
+    // =====================================================
+    match /services/{serviceId} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+
+    // =====================================================
+    // ANNOUNCEMENTS — authenticated read; admin write
+    // =====================================================
+    match /announcements/{annId} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+
+    // =====================================================
+    // LOGS — staff+ create; admin/IT read; IT delete
+    // =====================================================
+    match /logs/{logId} {
+      allow read:   if isAdmin() || isIT();
+      allow create: if isStaffOrAbove();
+      allow delete: if isIT();
+      allow update: if false;
+    }
+
+    // =====================================================
+    // SYSTEM CONFIG — public read (residents need maintenance flag);
+    // only IT can write. The maintenance flag must be readable by
+    // everyone — including unauthenticated users — so the resident
+    // dashboard and login page can check it without being blocked.
+    // =====================================================
+    match /system/{docId} {
+      allow read:  if true;
+      allow write: if isIT();
+    }
+
+    // =====================================================
+    // BACKUPS — IT only (snapshot documents)
+    // =====================================================
+    match /backups/{docId} {
+      allow read, write: if isIT();
+    }
+
+    // =====================================================
+    // BACKUP METADATA — IT only (snapshot index/manifest)
+    // =====================================================
+    match /backupMeta/{docId} {
+      allow read, write: if isIT();
+    }
+
+    // =====================================================
+    // PENDING ADMINS — Registration queue
+    // Any authenticated user can write their own pending doc.
+    // Only IT can read all / update status / delete.
+    // The registrant can read their own pending doc.
+    // =====================================================
+    match /pendingAdmins/{uid} {
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow read:   if isOwner(uid) || isIT();
+      allow update: if isIT();
+      allow delete: if isIT();
+    }
+  }
+}

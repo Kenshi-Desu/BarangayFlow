@@ -1,0 +1,27 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "frontend",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/admin",
+        "destination": "/barangay-administrator.html"
+      },
+      {
+        "source": "/staff",
+        "destination": "/admin.html"
+      },
+      {
+        "source": "/it-panel",
+        "destination": "/it.html"
+      }
+    ]
+  }
+}

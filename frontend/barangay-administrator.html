@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Administrator Panel | BarangayFlow</title>
+  <link rel="stylesheet" href="/css/barangay-administrator.css">
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+<!-- ======================== NAVBAR ======================== -->
+<div class="navbar">
+  <div class="nav-left">
+    <img src="/images/BARANGAYFLOW.logo2.png" alt="Logo">
+    <h2>BarangayFlow</h2>
+    <span class="admin-badge">Admin</span>
+  </div>
+
+  <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+
+  <div class="nav-right" id="navRight">
+    <a id="nav-dashboard" onclick="showSection('dashboard');closeNav()">Dashboard</a>
+    <a id="nav-requests"  onclick="showSection('requests');closeNav()">Requests</a>
+    <a id="nav-services"  onclick="showSection('services');closeNav()">Services</a>
+    <a id="nav-users"     onclick="showSection('users');closeNav()">Users</a>
+    <a id="nav-announcements" onclick="showSection('announcements');closeNav()" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
+    <a id="nav-reports" href="report.html" class="nav-reports-link"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><rect x="2" y="20" width="20" height="1"/></svg>Reports</a>
+    <a class="logout-link" onclick="logout(); return false;" style="display:inline-flex;align-items:center;gap:5px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </a>
+  </div>
+</div>
+
+<div id="navBackdrop" onclick="closeNav()" style="display:none;position:fixed;inset:0;z-index:998;"></div>
+
+<script>
+  const navToggle  = document.getElementById('navToggle');
+  const navRight   = document.getElementById('navRight');
+  const navBackdrop = document.getElementById('navBackdrop');
+
+  navToggle.addEventListener('click', () => {
+    const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      closeNav();
+    } else {
+      navToggle.setAttribute('aria-expanded', 'true');
+      navRight.classList.add('open');
+      navBackdrop.style.display = 'block';
+    }
+  });
+
+  function closeNav() {
+    navToggle.setAttribute('aria-expanded', 'false');
+    navRight.classList.remove('open');
+    navBackdrop.style.display = 'none';
+  }
+</script>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="admin-header">
+    <div>
+      <p>Barangay Administrator Panel</p>
+      <h3 id="adminName">Loading...</h3>
+    </div>
+  </div>
+
+  <!-- ==================== DASHBOARD ==================== -->
+  <div id="section-dashboard" class="page-section active">
+    <h3 class="section-header">System Overview</h3>
+
+    <div class="cards">
+      <div class="card"><p>Total Requests</p><h1 id="total">0</h1></div>
+      <div class="card highlight"><p>Pending</p><h1 id="pending">0</h1></div>
+      <div class="card"><p>In Progress</p><h1 id="inprogress">0</h1></div>
+      <div class="card"><p>Ready for Pickup</p><h1 id="ready">0</h1></div>
+      <div class="card"><p>Completed</p><h1 id="completed">0</h1></div>
+      <div class="card"><p>Rejected</p><h1 id="rejected">0</h1></div>
+      <div class="card accent"><p>Completion Rate</p><h1 id="rate">0%</h1></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="admin-card chart-card">
+        <h4>Requests by Status</h4>
+        <canvas id="statusChart"></canvas>
+      </div>
+      <div class="admin-card chart-card">
+        <h4>Service Distribution</h4>
+        <canvas id="serviceChart"></canvas>
+      </div>
+      <div class="admin-card chart-card full-width">
+        <h4>Monthly Requests Trend</h4>
+        <canvas id="monthlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== REQUESTS ==================== -->
+  <div id="section-requests" class="page-section">
+    <h3 class="section-header">All Service Requests</h3>
+
+    <div class="filters">
+      <input id="reqSearch" placeholder="Search by name, service, or ID..." oninput="filterRequests()">
+      <select id="reqStatusFilter" onchange="filterRequests()">
+        <option value="all">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Ready for Pickup">Ready for Pickup</option>
+        <option value="Completed">Completed</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+    </div>
+
+    <div class="table-container">
+      <div class="table-head req-grid">
+        <span>Request ID</span>
+        <span>Resident Name</span>
+        <span>Service Type</span>
+        <span>Submitted</span>
+        <span>Status</span>
+        <span>Actions</span>
+      </div>
+      <div id="requestsTableBody"></div>
+    </div>
+  </div>
+
+  <!-- ==================== SERVICES ==================== -->
+  <div id="section-services" class="page-section">
+    <h3 class="section-header">Service Configuration</h3>
+
+    <div class="admin-card manage-form">
+      <h4>Add New Service</h4>
+      <input id="svcName" placeholder="Service Name *">
+      <input id="svcDesc" placeholder="Description">
+      <div class="input-row">
+        <input id="svcDays" type="number" min="0" placeholder="Processing Days">
+        <input id="svcFee" type="number" min="0" step="0.01" placeholder="Fee (₱)">
+      </div>
+      <textarea id="svcDocs" placeholder="Required Documents (one per line)&#10;e.g. Valid ID&#10;Barangay Cedula"></textarea>
+      <button id="addServiceBtn" class="action-btn primary-btn" onclick="addService()">+ Add Service</button>
+    </div>
+
+    <h4 class="sub-header">Configured Services</h4>
+    <div id="servicesList"></div>
+  </div>
+
+  <!-- ==================== USERS ==================== -->
+  <div id="section-users" class="page-section">
+    <h3 class="section-header">User Management</h3>
+    <p class="section-note">Real-time view of all registered accounts. Role changes must be managed by IT Personnel.</p>
+    <div id="usersList"></div>
+  </div>
+
+  <!-- ==================== ANNOUNCEMENTS ==================== -->
+  <div id="section-announcements" class="page-section">
+    <h3 class="section-header">Announcement Management</h3>
+
+    <div class="admin-card manage-form">
+      <h4>Post New Announcement</h4>
+      <input id="annTitle" placeholder="Announcement Title *">
+      <textarea id="annContent" placeholder="Write the announcement content here..." rows="4"></textarea>
+      <button id="postAnnBtn" class="action-btn primary-btn" onclick="postAnnouncement()">Post Announcement</button>
+    </div>
+
+    <h4 class="sub-header">Posted Announcements</h4>
+    <div id="annList"></div>
+  </div>
+
+</div>
+
+<!-- ========================================================
+     MODALS
+     ======================================================== -->
+
+<!-- Request Detail / Update Modal -->
+<div id="requestModal" class="modal-overlay" onclick="handleModalClick(event, 'requestModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Request Details</h3>
+      <button class="modal-close" onclick="closeRequestModal()"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- Edit Service Modal -->
+<div id="editServiceModal" class="modal-overlay" onclick="handleModalClick(event, 'editServiceModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Edit Service</h3>
+      <button class="modal-close" onclick="closeEditService()"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-form" style="padding:0; background:transparent; box-shadow:none;">
+        <input id="editSvcName" placeholder="Service Name *">
+        <input id="editSvcDesc" placeholder="Description">
+        <div class="input-row">
+          <input id="editSvcDays" type="number" min="0" placeholder="Processing Days">
+          <input id="editSvcFee" type="number" min="0" step="0.01" placeholder="Fee (₱)">
+        </div>
+        <textarea id="editSvcDocs" placeholder="Required Documents (one per line)" rows="4"></textarea>
+        <button id="saveEditServiceBtn" class="action-btn primary-btn" onclick="saveEditService()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Announcement Modal -->
+<div id="editAnnModal" class="modal-overlay" onclick="handleModalClick(event, 'editAnnModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Edit Announcement</h3>
+      <button class="modal-close" onclick="closeEditAnn()"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-form" style="padding:0; background:transparent; box-shadow:none;">
+        <input id="editAnnTitle" placeholder="Announcement Title *">
+        <textarea id="editAnnContent" placeholder="Content..." rows="5"></textarea>
+        <button id="saveEditAnnBtn" class="action-btn primary-btn" onclick="saveEditAnn()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+  function handleModalClick(e, modalId) {
+    if (e.target.id === modalId) {
+      document.getElementById(modalId)?.classList.remove("open");
+    }
+  }
+</script>
+
+<!-- ADMIN LOGOUT CONFIRMATION MODAL -->
+<div id="adminLogoutModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="adminLogoutModalTitle">
+  <div class="modal-card" style="max-width:380px;text-align:center;">
+    <div class="modal-header" style="flex-direction:column;align-items:center;gap:12px;padding-bottom:12px;">
+      <div style="width:60px;height:60px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;color:#ef4444;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <h3 id="adminLogoutModalTitle">Sign Out</h3>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:0 24px 8px;">
+      <p style="font-size:14px;color:var(--muted,#6b7280);line-height:1.6;">Are you sure you want to sign out of the admin panel?</p>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="cancelAdminLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:1.5px solid #e5e7eb;background:white;color:#1f2937;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancel
+      </button>
+      <button id="confirmAdminLogoutBtn" onclick="confirmAdminLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/barangay-administrator.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     DOCUMENT TEMPLATE EDITOR — Full-screen redesign
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="templateEditorModal" class="tpl-modal" role="dialog"
+     aria-modal="true" aria-labelledby="tplModalTitle">
+  <div class="tpl-modal-box">
+
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <div class="tpl-topbar">
+      <div class="tpl-topbar-left">
+        <div class="tpl-topbar-icon"><i class="fa-regular fa-file-lines"></i></div>
+        <div>
+          <div class="tpl-topbar-title" id="tplModalTitle">Document Template Builder</div>
+          <div class="tpl-topbar-service" id="tplServiceLabel">—</div>
+        </div>
+      </div>
+      <div class="tpl-topbar-right">
+        <!-- Tab switcher -->
+        <div class="tpl-tabs" role="tablist">
+          <button class="tpl-tab tpl-tab-active" id="tabBtnEditor"
+                  onclick="tplSwitchTab('editor')" role="tab" aria-selected="true">
+            <i class="fa-solid fa-pen-to-square"></i> Editor
+          </button>
+          <button class="tpl-tab" id="tabBtnPreview"
+                  onclick="tplSwitchTab('preview')" role="tab" aria-selected="false">
+            <i class="fa-regular fa-eye"></i> Preview
+          </button>
+        </div>
+        <button class="tpl-history-btn" onclick="toggleVersionDrawer()" title="Version History">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          History
+        </button>
+        <button class="tpl-close-btn" onclick="closeTemplateEditor()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Main content area ───────────────────────────────────── -->
+    <div class="tpl-content">
+
+      <!-- EDITOR TAB -->
+      <div class="tpl-tab-panel" id="tabPanelEditor">
+
+        <!-- Document title row -->
+        <div class="tpl-title-row">
+          <div class="tpl-title-field">
+            <label class="tpl-field-label" for="tplDocTitle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Document Title
+            </label>
+            <input id="tplDocTitle" class="tpl-title-input"
+                   placeholder="e.g. BARANGAY CLEARANCE" autocomplete="off" />
+          </div>
+          <div class="tpl-note-field">
+            <label class="tpl-field-label" for="tplChangelog">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Version Note <span class="tpl-optional">(optional)</span>
+            </label>
+            <input id="tplChangelog" class="tpl-title-input"
+                   placeholder="e.g. Updated for 2025 ordinance" autocomplete="off" />
+          </div>
+        </div>
+
+        <!-- Placeholder panel — collapsible -->
+        <div class="tpl-ph-panel" id="tplPhPanel">
+          <button class="tpl-ph-toggle" onclick="tplTogglePh()" id="tplPhToggle" aria-expanded="true">
+            <span class="tpl-ph-toggle-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              Available Placeholders
+              <span class="tpl-ph-count" id="tplPhCount">19</span>
+            </span>
+            <span class="tpl-ph-hint" id="tplPhHintText">Click any token to insert at cursor · hover for description</span>
+            <svg class="tpl-ph-chevron" id="tplPhChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="tpl-ph-body" id="tplPhBody">
+            <div class="tpl-ph-groups" id="tplTokenChips"><!-- populated by JS --></div>
+          </div>
+        </div>
+
+        <!-- Body editor — Word-like rich text -->
+        <div class="tpl-editor-wrapper">
+
+          <!-- Ribbon toolbar -->
+          <div class="tpl-ribbon">
+            <!-- Group: History -->
+            <div class="tpl-ribbon-group">
+              <button class="tpl-ribbon-btn" id="rbnUndo" onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7v6h6"/><path d="M3 13A9 9 0 1 0 6 6.7"/></svg>
+              </button>
+              <button class="tpl-ribbon-btn" id="rbnRedo" onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 7v6h-6"/><path d="M21 13A9 9 0 1 1 18 6.7"/></svg>
+              </button>
+            </div>
+            <div class="tpl-ribbon-sep"></div>
+            <!-- Group: Text style -->
+            <div class="tpl-ribbon-group">
+              <select class="tpl-ribbon-select" id="rbnStyle" onchange="tplApplyStyle(this.value)" title="Paragraph style">
+                <option value="body-text">Body Text</option>
+                <option value="salutation">Salutation</option>
+                <option value="purpose-line">Purpose Line</option>
+                <option value="h2">Heading</option>
+              </select>
+            </div>
+            <div class="tpl-ribbon-sep"></div>
+            <!-- Group: Format -->
+            <div class="tpl-ribbon-group">
+              <button class="tpl-ribbon-btn tpl-ribbon-fmt" id="rbnBold"   onclick="tplFmt('bold')"          title="Bold (Ctrl+B)"><strong>B</strong></button>
+              <button class="tpl-ribbon-btn tpl-ribbon-fmt" id="rbnItalic" onclick="tplFmt('italic')"        title="Italic (Ctrl+I)"><em>I</em></button>
+              <button class="tpl-ribbon-btn tpl-ribbon-fmt" id="rbnUnder"  onclick="tplFmt('underline')"     title="Underline (Ctrl+U)"><u>U</u></button>
+            </div>
+            <div class="tpl-ribbon-sep"></div>
+            <!-- Group: Alignment -->
+            <div class="tpl-ribbon-group">
+              <button class="tpl-ribbon-btn" onclick="tplAlign('left')"    title="Align Left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+              </button>
+              <button class="tpl-ribbon-btn" onclick="tplAlign('center')"  title="Center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              </button>
+              <button class="tpl-ribbon-btn" onclick="tplAlign('right')"   title="Align Right">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <button class="tpl-ribbon-btn" onclick="tplAlign('justify')" title="Justify">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="tpl-ribbon-sep"></div>
+            <!-- Group: Insert -->
+            <div class="tpl-ribbon-group">
+              <button class="tpl-ribbon-btn tpl-ribbon-insert" onclick="tplInsertNewPara()"   title="New paragraph">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                Para
+              </button>
+              <button class="tpl-ribbon-btn tpl-ribbon-insert" onclick="tplInsertIndent()"    title="Insert indent (5 spaces)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+                Indent
+              </button>
+            </div>
+            <div class="tpl-ribbon-sep"></div>
+            <!-- Group: View -->
+            <div class="tpl-ribbon-group tpl-ribbon-group-right">
+              <button class="tpl-ribbon-btn tpl-ribbon-toggle" id="rbnHtmlToggle" onclick="tplToggleHtmlMode()" title="Toggle HTML source view">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                HTML
+              </button>
+              <button class="tpl-ribbon-btn tpl-ribbon-preview-btn" onclick="tplSwitchTab('preview')" title="Open preview">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview
+              </button>
+            </div>
+          </div>
+
+          <!-- Page-like editing area -->
+          <div class="tpl-page-canvas">
+            <div class="tpl-page-sheet">
+              <!-- WYSIWYG contenteditable -->
+              <div id="tplRichEditor" class="tpl-rich-editor" contenteditable="true" spellcheck="true"
+                   data-placeholder="Start writing your document body here…&#10;Use the placeholder chips above to insert {{tokens}} and the toolbar to format."
+                   oninput="tplOnRichInput()" onkeyup="tplUpdateToolbarState()" onmouseup="tplUpdateToolbarState()"
+                   onfocus="tplUpdateToolbarState()"></div>
+              <!-- Hidden textarea keeps HTML in sync for save/load -->
+              <textarea id="tplBodyHtml" class="tpl-body-textarea-hidden" spellcheck="false" aria-hidden="true"></textarea>
+              <!-- HTML source fallback (hidden by default) -->
+              <textarea id="tplHtmlSource" class="tpl-html-source" spellcheck="false" style="display:none"
+                        placeholder="Raw HTML…" oninput="tplSyncFromSource()"></textarea>
+            </div>
+          </div>
+
+          <div class="tpl-char-count" id="tplCharCount">0 characters</div>
+        </div>
+
+      </div><!-- /tabPanelEditor -->
+
+      <!-- PREVIEW TAB -->
+      <div class="tpl-tab-panel tpl-tab-hidden" id="tabPanelPreview">
+        <div class="tpl-preview-toolbar">
+          <div class="tpl-preview-toolbar-left">
+            <span class="tpl-preview-label">Live Preview</span>
+            <span class="tpl-preview-note">Using sample resident data</span>
+          </div>
+          <div class="tpl-preview-toolbar-right">
+            <button class="tpl-toolbar-btn" onclick="refreshTplPreview()">↺ Refresh</button>
+            <button class="tpl-toolbar-btn tpl-toolbar-btn-primary" onclick="tplSwitchTab('editor')">← Back to Editor</button>
+          </div>
+        </div>
+        <div class="tpl-preview-outer">
+          <div class="tpl-preview-wrapper">
+            <iframe id="tplPreviewFrame"
+                    title="Document preview"
+                    sandbox="allow-same-origin"
+                    class="tpl-preview-iframe"></iframe>
+          </div>
+        </div>
+      </div><!-- /tabPanelPreview -->
+
+    </div><!-- /tpl-content -->
+
+    <!-- ── Bottom action bar ────────────────────────────────────── -->
+    <div class="tpl-actionbar">
+      <div class="tpl-actionbar-left">
+        <span class="tpl-save-status" id="tplSaveStatus"></span>
+      </div>
+      <div class="tpl-actionbar-right">
+        <button class="tpl-cancel-btn" onclick="closeTemplateEditor()">Cancel</button>
+        <button class="tpl-preview-btn" onclick="tplSwitchTab('preview')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+        <button class="tpl-save-btn" id="tplSaveBtn" onclick="saveTemplateFromEditor()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Template
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Version history side drawer ──────────────────────────── -->
+    <div id="tplVersionDrawer" class="tpl-version-drawer">
+      <div class="tpl-version-topbar">
+        <div>
+          <div class="tpl-version-title">Version History</div>
+          <div class="tpl-version-sub" id="tplVersionSub">Previous saves for this template</div>
+        </div>
+        <button class="tpl-drawer-close-btn" onclick="toggleVersionDrawer()" aria-label="Close version history">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="tplVersionList" class="tpl-version-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== RESIDENT REVIEW MODAL ==================== -->
+<div id="residentReviewOverlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;
+              max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);
+              animation:rrPop .25s cubic-bezier(.34,1.2,.64,1);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:20px 24px 14px;border-bottom:1px solid #f3f4f6;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#fef3c7;
+                    display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><line x1="13" y1="10" x2="19" y2="10"/><line x1="13" y1="14" x2="17" y2="14"/></svg></div>
+        <div>
+          <h3 style="margin:0;font-size:16px;font-weight:700;color:#111827;">Resident Registration Review</h3>
+          <p style="margin:0;font-size:12px;color:#6b7280;">Verify the details and ID before approving</p>
+        </div>
+      </div>
+      <button onclick="closeResidentReview()"
+              style="width:36px;height:36px;border:none;background:#f3f4f6;border-radius:8px;
+                     cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6b7280;">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px 24px;" id="residentReviewBody">
+      <!-- filled by JS -->
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;gap:10px;padding:16px 24px 20px;border-top:1px solid #f3f4f6;flex-wrap:wrap;">
+      <button id="rrApproveBtn"
+              onclick="rrDoApprove()"
+              style="flex:1;min-width:120px;padding:11px;background:#16a34a;color:#fff;
+                     border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Approve Account
+      </button>
+      <button id="rrRejectBtn"
+              onclick="rrDoReject()"
+              style="flex:1;min-width:120px;padding:11px;background:#dc2626;color:#fff;
+                     border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Reject Account
+      </button>
+      <button onclick="closeResidentReview()"
+              style="width:100%;padding:10px;background:#f3f4f6;color:#374151;
+                     border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes rrPop {
+  from { transform:scale(.95) translateY(12px); opacity:0; }
+  to   { transform:scale(1)   translateY(0);    opacity:1; }
+}
+</style>
+
+</body>
+</html>

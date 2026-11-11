@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <title>BarangayFlow | Online Service Request System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+  <!-- Floating particles for live background -->
+  <div id="particles"></div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="logo">
+      <img src="/images/BarangayFlow.Logo.png" alt="logo">
+      <span>BarangayFlow</span>
+    </div>
+    <div class="nav-buttons">
+      <button class="login" onclick="window.location.href='track.html'">Track Request</button>
+      <button class="login" onclick="window.location.href='login.html'">Login</button>
+      <button class="register" onclick="window.location.href='register.html'">Register</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Online Service Request System</h1>
+      <p>
+        Submit and track your barangay service requests online — 
+        No need to visit the office.
+      </p>
+      <a href="login.html" class="primary-btn">Get Started</a>
+    </div>
+    <div class="hero-img">
+      <img src="/images/Hero1.png" alt="hero">
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="card">
+      <img src="/images/icon1.png" alt="">
+      <p>Online Service Request System</p>
+    </div>
+    <div class="card">
+      <img src="/images/icon2.png" alt="">
+      <p>Track Status Real-time</p>
+    </div>
+    <div class="card">
+      <img src="/images/icon3.png" alt="">
+      <p>Get Notifications</p>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="services">
+    <h3>Available Services</h3>
+    <div class="service-buttons">
+      <button>Barangay Clearance</button>
+      <button>Certificate of Residency</button>
+      <button>Certificate of Indigency</button>
+      <button>Business Permit</button>
+    </div>
+  </section>
+
+  <script>
+    // Generate floating particles
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 20 + 6;
+      p.style.cssText = `
+        width: ${size}px;
+        height: ${size}px;
+        left: ${Math.random() * 100}%;
+        animation-duration: ${Math.random() * 18 + 12}s;
+        animation-delay: ${Math.random() * 10}s;
+        opacity: ${Math.random() * 0.5 + 0.1};
+      `;
+      container.appendChild(p);
+    }
+  </script>
+</body>
+</html>

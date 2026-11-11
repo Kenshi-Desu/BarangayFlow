@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>IT Personnel Panel | BarangayFlow</title>
+  <link rel="icon" type="image/png" href="/images/BarangayFlow.Logo.ico">
+  <link rel="stylesheet" href="/css/it.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- =============== NAVBAR =============== -->
+<nav class="navbar">
+  <div class="nav-left">
+    <img src="/images/BARANGAYFLOW.logo2.png" alt="Logo">
+    <h2>BarangayFlow</h2>
+    <span class="it-badge">IT Panel</span>
+  </div>
+  <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-right" id="navRight">
+    <a id="nav-dashboard" onclick="showSection('dashboard');closeNav()" class="active">Dashboard</a>
+    <a id="nav-rbac" onclick="showSection('rbac');closeNav()">RBAC</a>
+    <a id="nav-logs" onclick="showSection('logs');closeNav()">Audit Logs</a>
+    <a id="nav-system" onclick="showSection('system');closeNav()">System</a>
+    <a class="logout-link" onclick="logout(); return false;" style="display:inline-flex;align-items:center;gap:5px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </a>
+  </div>
+</nav>
+
+<div id="navBackdrop" onclick="closeNav()" style="display:none;position:fixed;inset:0;z-index:998;"></div>
+
+<script>
+  const navToggle   = document.getElementById('navToggle');
+  const navRight    = document.getElementById('navRight');
+  const navBackdrop = document.getElementById('navBackdrop');
+
+  navToggle.addEventListener('click', () => {
+    const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      closeNav();
+    } else {
+      navToggle.setAttribute('aria-expanded', 'true');
+      navRight.classList.add('open');
+      navBackdrop.style.display = 'block';
+    }
+  });
+
+  function closeNav() {
+    navToggle.setAttribute('aria-expanded', 'false');
+    navRight.classList.remove('open');
+    navBackdrop.style.display = 'none';
+  }
+</script>
+
+<div class="container">
+
+  <!-- PAGE HEADER -->
+  <div class="admin-header">
+    <div>
+      <p>IT Personnel Panel</p>
+      <h3 id="adminName">Loading...</h3>
+    </div>
+    <div id="maintenanceBanner" class="maintenance-banner" style="display:none;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Maintenance Mode is <strong>ACTIVE</strong>
+    </div>
+  </div>
+
+  <!-- SECTION: DASHBOARD -->
+  <div id="section-dashboard" class="page-section active">
+    <h3 class="section-header">System Overview</h3>
+    <div class="cards">
+      <div class="card">
+        <p>Total Residents</p>
+        <h1 id="totalUsers">—</h1>
+        <small>Registered accounts</small>
+      </div>
+      <div class="card">
+        <p>Total Requests</p>
+        <h1 id="totalRequests">—</h1>
+        <small>All time</small>
+      </div>
+      <div class="card">
+        <p>Completed</p>
+        <h1 id="totalCompleted">—</h1>
+        <small>Successfully resolved</small>
+      </div>
+      <div class="card highlight">
+        <p>System Status</p>
+        <h1 id="systemStatus">OK</h1>
+        <small id="systemStatusLabel">All systems operational</small>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="admin-card chart-card">
+        <h4>Request Activity — Last 14 Days</h4>
+        <canvas id="activityChart"></canvas>
+      </div>
+      <div class="admin-card chart-card">
+        <h4>Status Breakdown</h4>
+        <canvas id="statusPieChart"></canvas>
+      </div>
+    </div>
+    <div class="admin-card" style="margin-top:20px;">
+      <div class="card-header-row">
+        <h4>Recent Audit Events</h4>
+        <button class="link-btn" onclick="showSection('logs')">View All <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:3px;"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+      <div id="recentLogs">
+        <div class="loading-row"><div class="spinner"></div> Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: RBAC -->
+  <div id="section-rbac" class="page-section">
+    <h3 class="section-header">Role-Based Access Control</h3>
+    <div class="toolbar">
+      <input type="text" id="userSearch" placeholder="Search by name, email, or ID..." oninput="filterUsers()">
+      <select id="roleFilter" onchange="filterUsers()">
+        <option value="">All Roles</option>
+        <option value="resident">Resident</option>
+        <option value="staff">Staff</option>
+        <option value="admin">Admin</option>
+        <option value="it">IT</option>
+      </select>
+    </div>
+
+    <!-- ── PENDING REGISTRATIONS ── -->
+    <div class="user-group-header">
+      <h4><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pending Registrations <span id="pendingCount" class="count-badge count-pending">0</span></h4>
+      <small style="color:#92400e; font-size:12px;">Approve applicants and assign their role to grant access.</small>
+    </div>
+    <div class="admin-card" style="padding:12px;">
+      <div id="pendingList">
+        <div class="loading-row"><div class="spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <div class="user-group-header" style="margin-top:20px;">
+      <h4>Residents <span id="residentCount" class="count-badge">0</span></h4>
+    </div>
+    <div class="admin-card" style="padding:12px;">
+      <div id="residentsList">
+        <div class="loading-row"><div class="spinner"></div> Loading...</div>
+      </div>
+      <div id="pg-it-residents" class="pagination-bar"></div>
+    </div>
+    <div class="user-group-header" style="margin-top:20px;">
+      <h4>Staff Accounts <span id="staffCount" class="count-badge">0</span></h4>
+    </div>
+    <div class="admin-card" style="padding:12px;">
+      <div id="staffList">
+        <div class="loading-row"><div class="spinner"></div> Loading...</div>
+      </div>
+      <div id="pg-it-staff" class="pagination-bar"></div>
+    </div>
+  </div>
+
+  <!-- SECTION: AUDIT LOGS -->
+  <div id="section-logs" class="page-section">
+    <h3 class="section-header">Audit Trail</h3>
+    <div class="toolbar">
+      <input type="text" id="logSearch" placeholder="Search logs..." oninput="filterLogs()">
+      <select id="logFilter" onchange="filterLogs()">
+        <option value="">All Actions</option>
+        <option value="RBAC UPDATE">RBAC</option>
+        <option value="ACCOUNT CREATED">Account Created</option>
+        <option value="ACCOUNT DISABLED">Account Disabled</option>
+        <option value="SYSTEM">System</option>
+        <option value="BACKUP">Backup</option>
+        <option value="RECOVERY">Recovery</option>
+      </select>
+      <button class="action-btn" onclick="exportLogs()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
+    </div>
+    <div class="admin-card" style="padding:12px;">
+      <p class="section-note">Full record of all administrative actions — role changes, maintenance toggles, backups, and account management.</p>
+      <div id="logsList">
+        <div class="loading-row"><div class="spinner"></div> Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: SYSTEM -->
+  <div id="section-system" class="page-section">
+    <h3 class="section-header">System Maintenance &amp; Configuration</h3>
+    <div class="system-grid">
+
+      <!-- Maintenance Mode -->
+      <div class="admin-card system-card">
+        <div class="card-top">
+          <div class="system-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+          <div>
+            <h4>Maintenance Mode</h4>
+            <p>Temporarily disables public-facing access. Staff can still log in.</p>
+          </div>
+        </div>
+        <div class="system-status-row">
+          <span>Current Status:</span>
+          <span id="maintenanceStatus" class="badge badge-off">OFF</span>
+        </div>
+        <div id="maintenanceInfo" style="display:none;margin:4px 0;font-size:12px;color:var(--muted);">
+          <div id="maintenanceEnabledBy"></div>
+          <div id="maintenanceEnabledAt"></div>
+        </div>
+        <button class="action-btn full-btn" id="maintenanceBtn" onclick="toggleMaintenance()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" style="vertical-align:middle;margin-right:5px;"><circle cx="12" cy="12" r="10"/></svg> Turn ON Maintenance
+        </button>
+      </div>
+
+      <!-- Data Backup -->
+      <div class="admin-card system-card">
+        <div class="card-top">
+          <div class="system-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
+          <div>
+            <h4>Data Backup</h4>
+            <p>Snapshot users, requests, services, and announcements to the backups collection.</p>
+          </div>
+        </div>
+        <div class="system-status-row">
+          <span>Last Backup:</span>
+          <span id="lastBackupTime" class="muted-text">Never</span>
+        </div>
+        <div class="system-status-row">
+          <span>Documents Backed Up:</span>
+          <span id="lastBackupDocs" class="muted-text">—</span>
+        </div>
+        <div id="backupProgressWrap" style="display:none;" class="progress-wrap">
+          <div class="progress-label"><span id="backupProgressLabel">Preparing backup...</span></div>
+          <div class="progress-bar-bg"><div id="backupProgressBar" class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+        <button class="action-btn full-btn" id="backupBtn" onclick="backupData()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Backup Now
+        </button>
+        <button class="btn-secondary full-btn" style="margin-top:8px;" onclick="showBackupList()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> View Backup History
+        </button>
+      </div>
+
+      <!-- Data Recovery -->
+      <div class="admin-card system-card">
+        <div class="card-top">
+          <div class="system-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg></div>
+          <div>
+            <h4>Data Recovery</h4>
+            <p>Restore system data from a prior backup snapshot stored in Firebase.</p>
+          </div>
+        </div>
+        <div class="system-status-row">
+          <span>Available Snapshots:</span>
+          <span id="snapshotCount" class="muted-text">—</span>
+        </div>
+        <div class="system-status-row">
+          <span>Last Restored:</span>
+          <span id="lastRestoredTime" class="muted-text">Never</span>
+        </div>
+        <div id="recoveryProgressWrap" style="display:none;" class="progress-wrap">
+          <div class="progress-label"><span id="recoveryProgressLabel">Restoring...</span></div>
+          <div class="progress-bar-bg"><div id="recoveryProgressBar" class="progress-bar-fill recovery-fill" style="width:0%"></div></div>
+        </div>
+        <button class="action-btn full-btn" id="recoveryBtn" onclick="showRecoveryPanel()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg> Open Recovery Panel
+        </button>
+      </div>
+
+      <!-- System Info -->
+      <div class="admin-card system-card">
+        <div class="card-top">
+          <div class="system-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div>
+            <h4>System Info</h4>
+            <p>Current environment and build details.</p>
+          </div>
+        </div>
+        <div class="info-list">
+          <div class="info-row"><span>Environment</span><strong>Production</strong></div>
+          <div class="info-row"><span>Firebase SDK</span><strong>v10.12.2</strong></div>
+          <div class="info-row"><span>App Version</span><strong>BarangayFlow v1.0 MVP</strong></div>
+          <div class="info-row"><span>Hosting</span><strong>Firebase Hosting</strong></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: DISABLE ACCOUNT -->
+<!-- MODAL: APPROVE REGISTRATION -->
+<div id="approveModal" class="modal-overlay" onclick="handleOverlayClick(event,'approveModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Approve Registration</h3>
+      <button class="modal-close" onclick="closeModal('approveModal')"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;margin-bottom:6px;">
+        Approving <strong id="approveTargetName"></strong>.<br>
+        <small style="color:#6b7280;">Assign a role to grant dashboard access.</small>
+      </p>
+      <p style="font-size:12px; color:#6b7280; margin-bottom:14px;" id="approveTargetEmail"></p>
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">Assign Role</label>
+      <select id="approveRoleSelect" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;margin-bottom:18px;font-family:inherit;">
+        <option value="staff">Barangay Staff</option>
+        <option value="admin">Administrator</option>
+        <option value="it">IT Personnel</option>
+      </select>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-secondary full-btn" onclick="closeModal('approveModal')">Cancel</button>
+        <button class="action-btn full-btn" id="confirmApproveBtn" onclick="confirmApprove()" style="background:linear-gradient(135deg,#22c55e,#16a34a);"><svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle;margin-right:4px;'><polyline points='20 6 9 17 4 12'/></svg> Approve &amp; Assign Role</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REJECT REGISTRATION -->
+<div id="rejectModal" class="modal-overlay" onclick="handleOverlayClick(event,'rejectModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Reject Registration</h3>
+      <button class="modal-close" onclick="closeModal('rejectModal')"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;margin-bottom:14px;">
+        Are you sure you want to reject <strong id="rejectTargetName"></strong>?<br>
+        <small style="color:#6b7280;">Their account will be marked as rejected. They will not be able to log in.</small>
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-secondary full-btn" onclick="closeModal('rejectModal')">Cancel</button>
+        <button class="action-btn full-btn danger-btn" id="confirmRejectBtn" onclick="confirmReject()"><svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle;margin-right:4px;'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg> Reject Application</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DISABLE ACCOUNT -->
+<div id="disableModal" class="modal-overlay" onclick="handleOverlayClick(event,'disableModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Disable Account</h3>
+      <button class="modal-close" onclick="closeDisableModal()"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;margin-bottom:16px;">
+        Are you sure you want to disable <strong id="disableTargetName"></strong>?
+        They will not be able to log in until re-enabled.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-secondary full-btn" onclick="closeDisableModal()">Cancel</button>
+        <button class="action-btn full-btn danger-btn" id="confirmDisableBtn" onclick="confirmDisable()">Disable Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BACKUP HISTORY -->
+<div id="backupListModal" class="modal-overlay" onclick="handleOverlayClick(event,'backupListModal')">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Backup History</h3>
+      <button class="modal-close" onclick="closeModal('backupListModal')"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p class="section-note" style="margin-bottom:14px;">Snapshots stored in the backups collection. Use the Recovery Panel to restore from any snapshot.</p>
+      <div id="backupListContent">
+        <div class="loading-row"><div class="spinner"></div> Loading backups...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DATA RECOVERY PANEL -->
+<div id="recoveryModal" class="modal-overlay" onclick="handleOverlayClick(event,'recoveryModal')">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg> Data Recovery Panel</h3>
+      <button class="modal-close" onclick="closeModal('recoveryModal')"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Step 1: Select Collection + Snapshot -->
+      <div id="recoveryStep1">
+        <p style="font-size:14px;color:#374151;margin-bottom:14px;">
+          Choose a collection to restore, then select a backup snapshot below.
+        </p>
+        <div class="recovery-col-grid">
+          <button class="rec-col-btn active" data-col="users" onclick="selectRecoveryCollection('users',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Users</button>
+          <button class="rec-col-btn" data-col="requests" onclick="selectRecoveryCollection('requests',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Requests</button>
+          <button class="rec-col-btn" data-col="services" onclick="selectRecoveryCollection('services',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M20 12h-2M6 12H4M19.07 19.07l-1.41-1.41M5.34 5.34L3.93 3.93M12 20v-2M12 6V4"/></svg> Services</button>
+          <button class="rec-col-btn" data-col="announcements" onclick="selectRecoveryCollection('announcements',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Announcements</button>
+          <button class="rec-col-btn" data-col="all" onclick="selectRecoveryCollection('all',this)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> All Collections</button>
+        </div>
+        <div style="margin-top:16px;">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;">Available Backup Snapshots</label>
+          <div id="snapshotList">
+            <div class="loading-row"><div class="spinner"></div> Loading snapshots...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Confirm -->
+      <div id="recoveryStep2" style="display:none;">
+        <div class="recovery-confirm-box">
+          <div class="confirm-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <h4>Confirm Restore</h4>
+          <p id="confirmRestoreText" style="font-size:14px;color:#374151;margin:10px 0;text-align:center;"></p>
+          <div class="modal-note" style="margin-bottom:16px;">
+            This will <strong>overwrite</strong> current live data for the selected collection(s)
+            with the backup snapshot. This action cannot be undone. Consider running a fresh backup first.
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn-secondary full-btn" onclick="cancelRestore()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 18 9 12 15 6"/></svg>Go Back</button>
+            <button class="action-btn full-btn danger-btn" id="confirmRestoreBtn" onclick="executeRestore()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg> Yes, Restore Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Result -->
+      <div id="recoveryStep3" style="display:none;">
+        <div class="recovery-confirm-box">
+          <div id="recoveryResultIcon" class="confirm-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <h4 id="recoveryResultTitle">Restore Complete</h4>
+          <p id="recoveryResultText" style="font-size:14px;color:#374151;margin:10px 0;text-align:center;"></p>
+          <button class="action-btn full-btn" onclick="resetRecoveryPanel()">Done</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- IT LOGOUT CONFIRMATION MODAL -->
+<div id="itLogoutModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="itLogoutModalTitle">
+  <div class="modal-card" style="max-width:380px;text-align:center;">
+    <div class="modal-header" style="flex-direction:column;align-items:center;gap:12px;padding-bottom:12px;">
+      <div style="width:60px;height:60px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;color:#ef4444;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <h3 id="itLogoutModalTitle">Sign Out</h3>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:0 24px 8px;">
+      <p style="font-size:14px;color:var(--muted,#6b7280);line-height:1.6;">Are you sure you want to sign out of the IT panel?</p>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="cancelItLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:1.5px solid #e5e7eb;background:white;color:#1f2937;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancel
+      </button>
+      <button id="confirmItLogoutBtn" onclick="confirmItLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module" src="/js/it.js"></script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Submit Request | BarangayFlow</title>
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/request.css">
+</head>
+<body>
+
+<!-- ── NAVBAR ───────────────────────────────────────────────── -->
+<div class="navbar">
+  <div class="nav-left">
+    <img src="/images/BARANGAYFLOW.logo2.png" alt="BarangayFlow Logo">
+    <h2>BarangayFlow</h2>
+  </div>
+
+  <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false"
+    onclick="this.setAttribute('aria-expanded',
+      this.getAttribute('aria-expanded')==='true' ? 'false' : 'true');
+      this.closest('.navbar').querySelector('.nav-right').classList.toggle('open');">
+    <span></span><span></span><span></span>
+  </button>
+
+  <div class="nav-right">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="#" class="active">New Request</a>
+    <a href="#" id="logoutBtn"
+       style="display:inline-flex;align-items:center;gap:5px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Logout
+    </a>
+  </div>
+</div>
+
+<!-- ── WORKING HOURS BANNER ─────────────────────────────────── -->
+<div id="workingHoursBanner"
+     style="display:none;align-items:flex-start;gap:14px;
+            background:#eff6ff;border:1.5px solid #93c5fd;border-radius:12px;
+            padding:16px 20px;margin:20px auto;max-width:700px;
+            box-shadow:0 2px 8px rgba(59,130,246,0.10);">
+  <span style="flex-shrink:0;margin-top:2px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+         viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </span>
+  <div>
+    <p style="margin:0 0 4px;font-weight:700;color:#1e40af;font-size:14px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="vertical-align:middle;">Outside Office Hours — Reminder</span>
+    </p>
+    <p id="offHoursMsg"
+       style="margin:0;font-size:13px;color:#1d4ed8;line-height:1.55;"></p>
+  </div>
+</div>
+
+<!-- ── MAIN FORM ─────────────────────────────────────────────── -->
+<div class="container">
+  <h1>Submit Service Request</h1>
+
+  <form id="requestForm">
+
+    <!-- Service Type -->
+    <div class="field">
+      <label for="serviceType">
+        Service Type <span style="color:#dc2626;">*</span>
+      </label>
+      <select id="serviceType">
+        <option value="" disabled selected hidden>Loading services…</option>
+      </select>
+
+      <!-- Requirements info box -->
+      <div id="serviceRequirementBox"
+           style="display:none;margin-top:10px;padding:14px 16px;
+                  background:#f0f2ff;border-radius:10px;border-left:4px solid #1a2cff;">
+        <p style="font-size:12px;color:#6b7280;margin:0 0 4px;" id="svcDescText"></p>
+        <p style="font-size:13px;color:#1a2cff;font-weight:700;margin:4px 0 2px;" id="svcDocsText"></p>
+        <p style="font-size:12px;color:#555;margin:2px 0;" id="svcFeeText"></p>
+        <p style="font-size:12px;color:#555;margin:2px 0;" id="svcDaysText"></p>
+      </div>
+    </div>
+
+    <!-- Purpose -->
+    <div class="field">
+      <label for="purpose">
+        Purpose <span style="color:#dc2626;">*</span>
+      </label>
+      <textarea id="purpose"
+                placeholder="Describe the purpose of your request"
+                rows="3"></textarea>
+    </div>
+
+    <!-- Name + Contact -->
+    <div class="center-row">
+      <div class="field">
+        <label for="fullName">
+          Full Name <span style="color:#dc2626;">*</span>
+        </label>
+        <input id="fullName" type="text"
+               placeholder="Auto-filled from profile" readonly>
+      </div>
+      <div class="field">
+        <label for="contact">
+          Contact Number <span style="color:#dc2626;">*</span>
+        </label>
+        <input id="contact" type="text"
+               placeholder="Auto-filled from profile" readonly>
+      </div>
+    </div>
+
+    <!-- Address -->
+    <div class="field">
+      <label for="address">
+        Complete Address <span style="color:#dc2626;">*</span>
+      </label>
+      <input id="address" type="text"
+             placeholder="Auto-filled from profile" readonly>
+    </div>
+
+    <!-- Notes -->
+    <div class="field">
+      <label for="notes">
+        Additional Notes
+        <span style="font-weight:400;color:#6b7280;">(Optional)</span>
+      </label>
+      <textarea id="notes"
+                placeholder="Any additional information for the staff"
+                rows="2"></textarea>
+    </div>
+
+    <!-- ── SUPPORTING DOCUMENTS — MANDATORY ───────────────── -->
+    <div class="field">
+      <label>
+        Supporting Documents
+        <span style="display:inline-block;margin-left:6px;
+                     background:#fef2f2;color:#dc2626;
+                     border:1px solid #fecaca;border-radius:5px;
+                     padding:1px 7px;font-size:11px;font-weight:700;
+                     vertical-align:middle;letter-spacing:.3px;">
+          REQUIRED
+        </span>
+      </label>
+      <p style="font-size:12px;color:#6b7280;margin-bottom:8px;line-height:1.5;">
+        Upload a clear photo or scan of your valid government-issued ID, or any
+        document required for this service. Images are automatically compressed.
+        <strong>Maximum 2 MB.</strong>
+      </p>
+
+      <!-- Upload box — JS fills and manages this element -->
+      <div class="upload-box" id="uploadBox"
+           tabindex="0" role="button"
+           aria-label="Upload supporting document"></div>
+
+      <!-- Hidden file picker -->
+      <input type="file" id="fileInput" hidden
+             accept="image/jpeg,image/png,image/webp,application/pdf">
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button type="button" class="cancel"
+              onclick="window.location.href='dashboard.html'">
+        Cancel
+      </button>
+
+      <div id="requestError"
+           style="display:none;background:#fef2f2;color:#dc2626;
+                  border:1px solid #fecaca;border-radius:8px;
+                  padding:10px 14px;font-size:13px;line-height:1.5;
+                  width:100%;order:-1;"></div>
+
+      <button id="submitBtn" type="submit" class="submit">
+        Submit Request
+      </button>
+    </div>
+
+    <p class="note">
+      You will receive an update once your request is processed.
+      Track your status on the Dashboard.
+    </p>
+    <p class="note" style="margin-top:6px;color:#6b7280;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           style="vertical-align:middle;margin-right:4px;">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Requests submitted outside office hours (<strong>Monday – Friday, 8:00 AM – 5:00 PM PHT</strong>)
+      will be processed on the next working day.
+    </p>
+
+  </form>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────────── -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ── LOGOUT MODAL ──────────────────────────────────────────── -->
+<div id="reqLogoutModal" class="req-logout-overlay" role="dialog" aria-modal="true">
+  <div class="req-logout-card">
+    <div class="req-logout-header">
+      <div class="req-logout-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </div>
+      <h3>Sign Out</h3>
+    </div>
+    <div class="req-logout-body">
+      <p>Are you sure you want to sign out of BarangayFlow?</p>
+    </div>
+    <div class="req-logout-footer">
+      <button onclick="cancelReqLogout()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Cancel
+      </button>
+      <button id="confirmReqLogoutBtn" class="confirm" onclick="confirmReqLogout()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Upload box error shake */
+.upload-box--error {
+  border-color: #ef4444 !important;
+  background:   #fef2f2 !important;
+  animation:    shakeBox .35s ease;
+}
+@keyframes shakeBox {
+  0%,100% { transform:translateX(0); }
+  20%,60%  { transform:translateX(-6px); }
+  40%,80%  { transform:translateX(6px); }
+}
+.upload-box:focus-visible {
+  outline:2px solid #1a2cff;outline-offset:2px;
+}
+
+/* Logout modal */
+.req-logout-overlay {
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);
+  z-index:9999;align-items:center;justify-content:center;padding:20px;
+}
+.req-logout-overlay.open {
+  display:flex;animation:reqFadeIn .2s ease;
+}
+@keyframes reqFadeIn { from{opacity:0} to{opacity:1} }
+.req-logout-card {
+  background:#fff;border-radius:16px;width:100%;max-width:380px;
+  text-align:center;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,0.18);
+  animation:reqPop .25s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes reqPop {
+  from{transform:scale(.95) translateY(12px);opacity:0}
+  to  {transform:scale(1)   translateY(0);   opacity:1}
+}
+.req-logout-header {
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:24px 24px 12px;border-bottom:1px solid #f3f4f6;
+}
+.req-logout-header h3 {font-size:16px;font-weight:700;color:#1f2937;margin:0;}
+.req-logout-icon {
+  width:60px;height:60px;border-radius:50%;background:#fee2e2;
+  display:flex;align-items:center;justify-content:center;color:#ef4444;
+}
+.req-logout-body {padding:16px 24px 8px;}
+.req-logout-body p {font-size:14px;color:#6b7280;line-height:1.6;margin:0;}
+.req-logout-footer {
+  display:flex;gap:10px;justify-content:center;
+  padding:12px 24px 24px;border-top:1px solid #f3f4f6;
+}
+.req-logout-footer button {
+  display:inline-flex;align-items:center;gap:6px;padding:10px 20px;
+  border:1.5px solid #e5e7eb;background:#fff;color:#1f2937;
+  border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;
+  font-family:inherit;min-height:44px;transition:background .15s;
+}
+.req-logout-footer button:hover {background:#f9fafb;}
+.req-logout-footer button.confirm {
+  background:#ef4444;color:#fff;border-color:transparent;
+}
+.req-logout-footer button.confirm:hover {background:#dc2626;}
+.req-logout-footer button.confirm:disabled {opacity:.6;cursor:not-allowed;}
+</style>
+
+<script type="module" src="/js/request.js"></script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff Registration | BarangayFlow</title>
+  <link rel="stylesheet" href="/css/admin-login.css">
+  <link rel="stylesheet" href="/css/admin-register.css">
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Eye button — mobile-safe tap target ── */
+    .eye-btn {
+      width: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      position: absolute !important;
+      right: 2px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      background: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #9ca3af !important;
+      cursor: pointer;
+      transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      z-index: 2;
+    }
+    .eye-btn:hover { color: #b0b8c8 !important; background: none !important; transform: translateY(-50%) !important; }
+    .eye-btn:active { color: #e5e7eb !important; background: none !important; transform: translateY(-50%) !important; opacity: 1 !important; }
+    .input-icon svg { display: block; }
+    .input-wrap { position: relative; }
+    .input-wrap input[type="password"],
+    .input-wrap input[type="text"] {
+      padding-right: 48px !important;
+    }
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear { display: none; }
+    input[type="password"]::-webkit-credentials-auto-fill-button { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div id="particles"></div>
+
+<div class="container reg-container">
+
+  <div class="header">
+    <a href="index.html" class="logo">
+      <img src="/images/BarangayFlow.Logo.png" alt="Logo">
+      <h2>BarangayFlow</h2>
+    </a>
+    <a href="admin-login.html" class="back-btn">
+      <img src="/images/icon4.png" alt="Back">
+    </a>
+  </div>
+
+  <!-- STEP 1: Registration Form -->
+  <div id="step-register" class="reg-card">
+    <div class="reg-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+    </div>
+    <h1 class="reg-title">Staff Registration</h1>
+    <p class="reg-subtitle">Submit your application for system access</p>
+
+    <div id="regError" class="msg-box msg-error" style="display:none;"></div>
+
+    <form id="regForm" onsubmit="submitRegistration(event)" novalidate autocomplete="off">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="field-label">First Name <span class="req">*</span></label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input id="reg-fname" type="text" class="field-input" placeholder="Juan" required autocomplete="given-name"
+                   oninput="capitalizeInput(this)" style="text-transform:capitalize;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Last Name <span class="req">*</span></label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input id="reg-lname" type="text" class="field-input" placeholder="Dela Cruz" required autocomplete="family-name"
+                   oninput="capitalizeInput(this)" style="text-transform:capitalize;">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Username <span class="req">*</span></label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </span>
+          <input id="reg-username" type="text" class="field-input" placeholder="jdelacruz" required autocomplete="off"
+                 oninput="this.value=this.value.replace(/[^a-z0-9_.\-]/gi,'').toLowerCase()">
+        </div>
+        <p class="field-hint">Lowercase letters, numbers, _ . - only.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Work Email <span class="req">*</span></label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </span>
+          <input id="reg-email" type="text" class="field-input" placeholder="juan@barangay.gov.ph" required autocomplete="off" inputmode="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Confirm Work Email <span class="req">*</span></label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <input id="reg-email-confirm" type="text" class="field-input" placeholder="Re-enter your email" required autocomplete="off" inputmode="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Position / Department</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </span>
+          <input id="reg-position" type="text" class="field-input" placeholder="e.g. Barangay Secretary"
+                 oninput="capitalizeInput(this)" style="text-transform:capitalize;">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Password <span class="req">*</span></label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input id="reg-password" type="password" class="field-input" placeholder="Min. 8 characters" required
+                 autocomplete="new-password" oninput="checkStrength(this.value)">
+          <button type="button" class="eye-btn" onclick="togglePwd('reg-password',this)" aria-label="Toggle password visibility">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="strength-wrap">
+          <div class="strength-bar"><div id="strengthFill"></div></div>
+          <span id="strengthLabel" class="strength-label"></span>
+          <div id="strengthHints" class="strength-hints-block"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Confirm Password <span class="req">*</span></label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input id="reg-confirm" type="password" class="field-input" placeholder="Re-enter password" required autocomplete="new-password">
+          <button type="button" class="eye-btn" onclick="togglePwd('reg-confirm',this)" aria-label="Toggle confirm password visibility">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="notice-box">
+        <span class="notice-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </span>
+        <p>Your registration will be reviewed by IT Personnel. You will <strong>not</strong> be able to log in until your account is approved and a role is assigned.</p>
+      </div>
+
+      <!-- NDA Acknowledgement -->
+      <div class="nda-wrap" id="ndaWrap">
+        <label class="nda-label">
+          <input type="checkbox" id="ndaCheck" required>
+          <span>I have read and agree to the <button type="button" class="nda-link" onclick="openStaffNdaModal()">Non-Disclosure Agreement</button>. I understand all barangay data is strictly confidential.</span>
+        </label>
+        <div id="ndaError" class="nda-error" style="display:none;">You must acknowledge the NDA to proceed.</div>
+      </div>
+
+      <button id="regBtn" type="submit" class="submit-btn">Submit Application</button>
+      <p class="login-link">Already have an account? <a href="admin-login.html">Sign in</a></p>
+
+    </form>
+  </div>
+
+  <!-- STEP 2: Pending Screen -->
+  <div id="step-pending" class="reg-card" style="display:none;">
+    <div class="reg-badge pending-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <h1 class="reg-title pending-title">Application Submitted!</h1>
+    <p class="reg-subtitle">Your registration is pending IT approval</p>
+    <div class="pending-info">
+      <div class="pending-row">
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span id="pending-name"></span>
+      </div>
+      <div class="pending-row">
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        <span id="pending-email-disp"></span>
+      </div>
+      <div class="pending-row">
+        <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span id="pending-time"></span>
+      </div>
+    </div>
+    <p class="pending-note">The IT Personnel team will review your application and assign your role. You will be able to log in once your account has been approved.</p>
+    <a href="admin-login.html" class="submit-btn" style="text-decoration:none;display:block;text-align:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 18 9 12 15 6"/></svg>Return to Login</a>
+  </div>
+
+</div>
+
+<script>
+  const pc = document.getElementById('particles');
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = Math.random() * 5 + 2;
+    p.style.cssText = `width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${Math.random()*16+10}s;animation-delay:${Math.random()*10}s;opacity:${Math.random()*0.4+0.1};`;
+    pc.appendChild(p);
+  }
+
+  function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    const isHidden = inp.type === 'password';
+    inp.type = isHidden ? 'text' : 'password';
+    const svg = btn.querySelector('svg');
+    if (!svg) return;
+    if (isHidden) {
+      svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  }
+
+  function capitalizeInput(el) {
+    const pos = el.selectionStart;
+    el.value = el.value.replace(/\b\w/g, c => c.toUpperCase());
+    el.setSelectionRange(pos, pos);
+  }
+
+  function checkStrength(val) {
+    const fill  = document.getElementById('strengthFill');
+    const label = document.getElementById('strengthLabel');
+    if (!fill || !label) return;
+    if (!val) { fill.style.width = '0'; label.textContent = ''; return; }
+    let score = 0;
+    if (val.length >= 8)            score++;
+    if (/[A-Z]/.test(val))          score++;
+    if (/[a-z]/.test(val))          score++;
+    if (/[0-9]/.test(val))          score++;
+    if (/[^A-Za-z0-9]/.test(val))   score++;
+    const levels = [
+      { pct:'10%', color:'#ef4444', text:'Very Weak' },
+      { pct:'30%', color:'#f97316', text:'Weak' },
+      { pct:'55%', color:'#eab308', text:'Fair' },
+      { pct:'80%', color:'#22c55e', text:'Strong' },
+      { pct:'100%',color:'#16a34a', text:'Very Strong' }
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    fill.style.width      = lvl.pct;
+    fill.style.background = lvl.color;
+    label.textContent     = lvl.text;
+    label.style.color     = lvl.color;
+    // Show requirement hints
+    const hints = [];
+    if (val.length < 8)             hints.push('8+ chars');
+    if (!/[A-Z]/.test(val))         hints.push('uppercase');
+    if (!/[a-z]/.test(val))         hints.push('lowercase');
+    if (!/[0-9]/.test(val))         hints.push('number');
+    if (!/[^A-Za-z0-9]/.test(val))  hints.push('special char');
+    const hintEl = document.getElementById('strengthHints');
+    if (hintEl) hintEl.textContent = hints.length ? 'Needs: ' + hints.join(', ') : '';
+  }
+</script>
+
+<script type="module" src="/js/admin-register.js"></script>
+
+<!-- Staff NDA Modal -->
+<div class="nda-overlay" id="staffNdaOverlay" onclick="closeStaffNdaIfOutside(event)">
+  <div class="nda-modal">
+    <div class="nda-modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h3>Staff Non-Disclosure Agreement</h3>
+      </div>
+      <button class="nda-close-btn" onclick="closeStaffNdaModal()" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nda-modal-body">
+      <div class="nda-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="nda-title">Barangay Sta. Rita Staff NDA</div>
+      <div class="nda-subtitle">Olongapo City, Zambales — Effective upon account approval</div>
+
+      <div class="nda-section">
+        <h4>1. Scope of Confidentiality</h4>
+        <p>All information accessed through BarangayFlow — including resident personal data, contact details, home addresses, request histories, and internal records — is strictly confidential and protected under the Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+      </div>
+      <div class="nda-section">
+        <h4>2. Authorized Use Only</h4>
+        <p>Access is granted solely for official barangay business. You must not copy, print, transmit, or disclose any resident data outside of authorized workflows. Unauthorized use constitutes a violation of this agreement and applicable law.</p>
+      </div>
+      <div class="nda-section">
+        <h4>3. Account Security</h4>
+        <p>You are solely responsible for all activity under your account. Never share credentials. Report suspected unauthorized access immediately to the Barangay IT Officer. Sessions are not persisted for security.</p>
+      </div>
+      <div class="nda-section">
+        <h4>4. Document Control</h4>
+        <p>Printed documents are official records. They must not be left unattended, shared with unauthorized persons, or disposed of improperly. Digital exports must only be stored in authorized systems.</p>
+      </div>
+      <div class="nda-section" style="border-bottom:none;">
+        <h4>5. Consequences of Violation</h4>
+        <p>Violations may result in immediate suspension, administrative disciplinary action, and civil or criminal liability under RA 10173. The Barangay reserves the right to pursue all available legal remedies.</p>
+      </div>
+    </div>
+    <div class="nda-modal-footer">
+      <button class="nda-agree-btn" onclick="agreeStaffNda()">I Understand &amp; Agree</button>
+      <button class="nda-cancel-btn" onclick="closeStaffNdaModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openStaffNdaModal() {
+    document.getElementById("staffNdaOverlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeStaffNdaModal() {
+    document.getElementById("staffNdaOverlay").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+  function closeStaffNdaIfOutside(e) {
+    if (e.target === document.getElementById("staffNdaOverlay")) closeStaffNdaModal();
+  }
+  function agreeStaffNda() {
+    const cb = document.getElementById("ndaCheck");
+    const wrap = document.getElementById("ndaWrap");
+    const err  = document.getElementById("ndaError");
+    if (cb) cb.checked = true;
+    if (err) err.style.display = "none";
+    if (wrap) wrap.style.borderColor = "#10b981";
+    closeStaffNdaModal();
+  }
+</script>
+
+</body>
+</html>

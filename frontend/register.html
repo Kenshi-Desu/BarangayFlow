@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <title>Register | BarangayFlow</title>
+  <link rel="stylesheet" href="/css/register.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <a href="index.html" class="logo">
+      <img src="/images/BarangayFlow.Logo.png">
+      <h2>BarangayFlow</h2>
+    </a>
+    <a href="login.html" class="back-btn">
+      <img src="/images/icon4.png">
+    </a>
+  </div>
+
+  <div class="register-box">
+    <h1>Register New Account</h1>
+
+    <form id="registerForm">
+
+      <div class="row">
+        <div class="field">
+          <label>First Name</label>
+          <input id="firstName" type="text" placeholder="Juan" required>
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input id="lastName" type="text" placeholder="Dela Cruz" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Email Address</label>
+          <input
+            id="email"
+            type="email"
+            inputmode="email"
+            placeholder="juandelacruz@gmail.com"
+            pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+            required>
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input
+            id="phone"
+            type="tel"
+            inputmode="numeric"
+            placeholder="09123456789"
+            pattern="09[0-9]{9}"
+            maxlength="11"
+            autocomplete="tel"
+            required>
+        </div>
+      </div>
+
+      <!-- ADDRESS — Cascading Purok → Street → House No. -->
+      <div class="field full">
+        <label>Address <span style="color:#ef4444;">*</span></label>
+
+        <div class="addr-grid-2">
+          <div>
+            <span class="addr-sublabel">Purok</span>
+            <select id="addrPurok" class="addr-select" required onchange="onPurokChange()">
+              <option value="" disabled selected>Select Purok</option>
+                <option value="Purok 1">Purok 1</option>
+                <option value="Purok 2">Purok 2</option>
+                <option value="Purok 3">Purok 3</option>
+                <option value="Purok 4">Purok 4</option>
+                <option value="Purok 5">Purok 5</option>
+                <option value="Purok 6">Purok 6</option>
+                <option value="Purok 7">Purok 7</option>
+                <option value="Purok 8">Purok 8</option>
+                <option value="Purok 9">Purok 9</option>
+                <option value="Purok 10">Purok 10</option>
+                <option value="Purok 11">Purok 11</option>
+                <option value="Purok 12">Purok 12</option>
+                <option value="Purok 13">Purok 13</option>
+                <option value="Purok 14">Purok 14</option>
+              </select>
+          </div>
+
+          <div>
+            <span class="addr-sublabel">Street / Road</span>
+            <select id="addrStreet" class="addr-select" required disabled onchange="buildAddressField()">
+              <option value="" disabled selected>Select Purok first</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="addr-grid-auto">
+          <div>
+            <span class="addr-sublabel">House / Lot No.</span>
+            <input id="addrHouseNo" type="text" placeholder="e.g. 12 or Blk 3 Lot 4" oninput="buildAddressField()">
+          </div>
+          <div>
+            <span class="addr-sublabel">Full Address (auto-filled)</span>
+            <input id="address" class="addr-autofill" type="text" readonly placeholder="Will be filled automatically" required>
+          </div>
+        </div>
+        <p class="addr-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Only residents of Barangay Sta. Rita, Olongapo City (ZIP 2200) may register.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Password</label>
+          <div class="pw-wrap">
+            <input id="password" type="password" placeholder="Min. 8 chars, upper, lower, number, symbol" required class="has-eye" oninput="residentCheckStrength(this.value)">
+            <button type="button" class="eye-btn" onclick="togglePwd('password',this)" aria-label="Show/hide password">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="strength-wrap">
+            <div class="strength-bar"><div id="residentStrengthFill"></div></div>
+            <div class="strength-row">
+              <span id="residentStrengthLabel" class="strength-label"></span>
+              <span id="residentStrengthHints" class="strength-hints"></span>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <div class="pw-wrap">
+            <input id="confirmPassword" type="password" placeholder="••••••••••••" required class="has-eye">
+            <button type="button" class="eye-btn" onclick="togglePwd('confirmPassword',this)" aria-label="Show/hide confirm password">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Valid ID Upload -->
+      <div class="field full" id="idUploadSection">
+        <label>
+          Valid Government-Issued ID
+          <span style="display:inline-block;margin-left:6px;
+                       background:#fef2f2;color:#dc2626;
+                       border:1px solid #fecaca;border-radius:5px;
+                       padding:1px 7px;font-size:11px;font-weight:700;
+                       vertical-align:middle;letter-spacing:.3px;">REQUIRED</span>
+        </label>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:8px;line-height:1.5;">
+          Upload a clear photo or scan of one (1) valid government-issued ID (e.g. PhilSys,
+          Driver's License, Passport, Voter's ID, UMID, PRC ID). This will be reviewed by
+          the barangay admin to verify your residency before your account is activated.
+          <strong>Max 2 MB. JPEG, PNG, WEBP, or PDF.</strong>
+        </p>
+        <div id="idUploadBox" class="id-upload-box"
+             tabindex="0" role="button"
+             aria-label="Upload valid ID"
+             onclick="document.getElementById('idFileInput').click()"
+             onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('idFileInput').click()">
+          <div style="text-align:center;pointer-events:none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                 fill="none" stroke="#9ca3af" stroke-width="1.5"
+                 style="display:block;margin:0 auto 8px;">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+            <span style="font-size:14px;color:#374151;font-weight:600;">Click to browse</span>
+            <span style="font-size:13px;color:#6b7280;"> or drag &amp; drop</span><br>
+            <span style="font-size:12px;color:#9ca3af;margin-top:4px;display:inline-block;">
+              JPEG · PNG · WEBP · PDF &nbsp;·&nbsp; Max 2 MB
+            </span>
+          </div>
+        </div>
+        <input type="file" id="idFileInput" hidden
+               accept="image/jpeg,image/png,image/webp,application/pdf">
+        <div id="idUploadError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
+      </div>
+
+      <!-- Terms & Conditions Checkbox -->
+      <div class="terms-wrap">
+        <label class="terms-label">
+          <input type="checkbox" id="agreeTerms" required>
+          <span>I have read and agree to the <button type="button" class="terms-link" onclick="openTermsModal()">Terms &amp; Conditions</button> and <button type="button" class="terms-link" onclick="openPrivacySection()">Privacy Policy</button></span>
+        </label>
+        <div id="termsError" class="terms-error" style="display:none;">
+          You must agree to the Terms &amp; Conditions before registering.
+        </div>
+      </div>
+
+      <div id="registerError" style="color: red; display: none; margin-bottom: 10px;"></div>
+
+      <button type="submit" id="registerBtn">Create Account</button>
+
+      <p class="login-link">Already have an account? <a href="login.html">Sign in here</a></p>
+
+    </form>
+  </div>
+
+</div>
+
+<!-- ===================== TERMS & CONDITIONS MODAL ===================== -->
+<div id="termsModal" class="terms-modal-overlay" onclick="handleTermsOverlay(event)">
+  <div class="terms-modal-box">
+    <div class="terms-modal-header">
+      <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Terms &amp; Conditions &amp; Privacy Policy</h3>
+      <button class="terms-modal-close" onclick="closeTermsModal()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="terms-modal-body">
+
+      <div class="terms-section">
+        <h4>1. Introduction</h4>
+        <p>Welcome to <strong>BarangayFlow</strong>, a digital barangay management platform operated by the Barangay IT Office. By registering an account, you agree to be bound by these Terms and Conditions and our Privacy Policy. Please read them carefully before proceeding.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>2. Eligibility</h4>
+        <p>To register, you must be a legitimate resident of the barangay. You must be at least 18 years old or have the consent of a parent or guardian. You are responsible for providing accurate and up-to-date personal information during registration.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>3. Account Responsibilities</h4>
+        <p>You are responsible for maintaining the confidentiality of your account credentials. You must not share your password with anyone. Any activity performed through your account is your responsibility. Report unauthorized access immediately to the barangay IT office.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>4. Use of the System</h4>
+        <p>BarangayFlow is intended solely for legitimate barangay service requests and communication. Prohibited activities include submitting false information, misrepresenting your identity, attempting to access other residents' accounts, and any activity that disrupts system operations.</p>
+      </div>
+
+      <div class="terms-section highlight-section">
+        <h4><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 5. Privacy Policy — How We Protect Your Data</h4>
+        <p><strong>What we collect:</strong> We collect your full name, email address, phone number, home address, and request history to provide barangay services effectively.</p>
+        <p style="margin-top:8px;"><strong>How we use it:</strong> Your data is used exclusively to process barangay service requests, notify you of updates, and improve our services. We do not sell or share your personal information with third parties without your consent.</p>
+        <p style="margin-top:8px;"><strong>Data security:</strong> Your data is stored securely using Firebase (Google Cloud) infrastructure with encryption at rest and in transit. Access is restricted to authorized barangay personnel only.</p>
+        <p style="margin-top:8px;"><strong>Your rights:</strong> You have the right to request access to, correction of, or deletion of your personal data. Contact the barangay IT office to exercise these rights.</p>
+        <p style="margin-top:8px;"><strong>Data retention:</strong> Your account data is retained for the duration of your residency and for up to 5 years after account closure, in compliance with local government record-keeping requirements.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>6. Service Availability</h4>
+        <p>BarangayFlow may experience scheduled or unscheduled downtime for maintenance. The barangay IT office will endeavor to notify users in advance of planned maintenance windows. We are not liable for any inconvenience caused by system unavailability.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>7. Account Suspension</h4>
+        <p>The barangay IT office reserves the right to suspend or disable accounts that violate these terms, submit fraudulent requests, or engage in any activity that compromises the integrity of the system.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>8. Amendments</h4>
+        <p>These Terms and Conditions may be updated from time to time. Continued use of the system after changes constitutes acceptance of the revised terms. Significant changes will be communicated via the platform.</p>
+      </div>
+
+      <div class="terms-section">
+        <h4>9. Contact</h4>
+        <p>For questions or concerns about these terms or your personal data, please contact the Barangay IT Office directly or visit the barangay hall during official business hours.</p>
+      </div>
+
+      <div class="terms-agree-row">
+        <button class="terms-agree-btn" onclick="agreeAndClose()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg> I Agree — Close
+        </button>
+        <button class="terms-decline-btn" onclick="closeTermsModal()">
+          Close Without Agreeing
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.id-upload-box {
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 20px 16px;
+  cursor: pointer;
+  background: #fafafa;
+  transition: border-color .2s, background .2s;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.id-upload-box:hover, .id-upload-box:focus-visible {
+  border-color: #1a2cff;
+  background: #eff6ff;
+  outline: none;
+}
+.id-upload-box--error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+.id-upload-box--success {
+  border-color: #22c55e !important;
+  background: #f0fdf4 !important;
+}
+</style>
+<script type="module" src="/js/auth.js"></script>
+
+<!-- ===================== PIN VERIFICATION OVERLAY ===================== -->
+<div id="pinOverlay" class="pin-overlay">
+  <div class="pin-sheet">
+    <div class="pin-sheet-handle"></div>
+
+    <div class="pin-header">
+      <div class="pin-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+      <h2>Check Your Email</h2>
+      <p>We sent a <strong>6-digit PIN</strong> to</p>
+      <p class="pin-email-hint" id="pinEmailHint">your email</p>
+      <p class="pin-subtext">Enter it below to verify your email address. PIN expires in <strong>10 minutes</strong>.</p>
+    </div>
+
+    <div class="pin-input-row" id="pinInputRow">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1">
+      <input class="pin-digit" type="tel" inputmode="numeric" maxlength="1">
+    </div>
+
+    <div id="pinError" class="pin-error" style="display:none;"></div>
+
+    <button id="pinVerifyBtn" class="pin-verify-btn">Verify &amp; Create Account</button>
+
+    <div class="pin-resend-row">
+      <button id="pinResendBtn" class="pin-resend-btn" disabled>Resend PIN</button>
+      <span id="pinResendTimer" class="pin-resend-timer">Resend in 60s</span>
+    </div>
+
+    <button id="pinCancelBtn" class="pin-cancel-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 18 9 12 15 6"/></svg>Go back and edit</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  /* ── Phone validation — must start with 09 ── */
+  const phone = document.getElementById('phone');
+  const PREFIX = '09';
+
+  phone.addEventListener('keydown', (e) => {
+    const nav = ['Backspace','Delete','Tab','Enter','ArrowLeft','ArrowRight','Home','End'];
+    if (nav.includes(e.key)) return;
+
+    // Only allow digit keys
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
+    // Block if already at max length
+    if (phone.value.length >= 11 && phone.selectionStart === phone.selectionEnd) {
+      e.preventDefault();
+      return;
+    }
+
+    // If field is empty, first key must be '0'
+    if (phone.value.length === 0 && e.key !== '0') {
+      e.preventDefault();
+      return;
+    }
+
+    // If field has only '0', next key must be '9'
+    if (phone.value === '0' && e.key !== '9') {
+      e.preventDefault();
+      return;
+    }
+  });
+
+  phone.addEventListener('input', () => {
+    // Strip non-digits and cap at 11
+    let digits = phone.value.replace(/\D/g, '').slice(0, 11);
+
+    // If more than 1 char and doesn't start with 09, strip back to safe prefix
+    if (digits.length >= 1 && digits[0] !== '0') digits = '';
+    if (digits.length >= 2 && digits[1] !== '9') digits = digits[0];
+
+    phone.value = digits;
+    phone.setCustomValidity('');
+  });
+
+  phone.addEventListener('blur', () => {
+    if (phone.value.length > 0 && !phone.value.startsWith(PREFIX)) {
+      phone.setCustomValidity('Phone number must start with 09.');
+      phone.reportValidity();
+    } else if (phone.value.length > 0 && phone.value.length < 11) {
+      phone.setCustomValidity('Phone number must be 11 digits.');
+      phone.reportValidity();
+    } else {
+      phone.setCustomValidity('');
+    }
+  });
+
+  /* ── Terms checkbox validation ── */
+  const form       = document.getElementById('registerForm');
+  const agreeBox   = document.getElementById('agreeTerms');
+  const termsError = document.getElementById('termsError');
+
+  form.addEventListener('submit', (e) => {
+    if (!agreeBox.checked) {
+      e.preventDefault();
+      termsError.style.display = 'block';
+      agreeBox.focus();
+    } else {
+      termsError.style.display = 'none';
+    }
+  });
+
+  agreeBox.addEventListener('change', () => {
+    termsError.style.display = agreeBox.checked ? 'none' : 'block';
+  });
+})();
+
+/* ── Terms modal controls ── */
+function openTermsModal() {
+  document.getElementById('termsModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function openPrivacySection() {
+  openTermsModal();
+  // Scroll to privacy section after modal opens
+  setTimeout(() => {
+    const el = document.querySelector('.highlight-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+}
+
+function closeTermsModal() {
+  document.getElementById('termsModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function agreeAndClose() {
+  document.getElementById('agreeTerms').checked = true;
+  document.getElementById('termsError').style.display = 'none';
+  closeTermsModal();
+}
+
+function handleTermsOverlay(e) {
+  if (e.target.id === 'termsModal') closeTermsModal();
+}
+</script>
+
+
+<style>
+  /* ── Eye-toggle — mobile-safe tap target ── */
+  .pw-wrap {
+    position: relative;
+    display: block;
+  }
+  .pw-wrap input { width: 100%; }
+
+  /* Reset ALL inherited global button styles then apply eye-btn rules */
+  .eye-btn {
+    /* layout overrides — must beat button{width:100%; margin-top:8px} */
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* positioning */
+    position: absolute !important;
+    right: 2px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    /* appearance */
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    /* content */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #9ca3af !important;
+    cursor: pointer;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    z-index: 2;
+  }
+  .eye-btn:hover { color: #4b5563 !important; background: none !important; transform: translateY(-50%) !important; }
+  .eye-btn:active { color: #1f2937 !important; background: none !important; transform: translateY(-50%) !important; opacity: 1 !important; }
+  input.has-eye { padding-right: 48px !important; }
+  /* Hide browser native password-reveal button */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear { display: none; }
+  input[type="password"]::-webkit-credentials-auto-fill-button { display: none !important; }
+</style>
+<script>
+
+  // ── BARANGAY STA. RITA — PUROK → STREETS MAP ────────────────────────────
+  // Purok boundaries and street names sourced from Olongapo City official
+  // records, Wikimapia, and community sources. All 14 puroks confirmed.
+  // ── BARANGAY STA. RITA — VERIFIED PUROK → STREETS ─────────────
+  // Sources: Barangay Sta. Rita blog (sta-rita.blogspot.com),
+  // Wikimapia, OpenAlfa, WorldPlaces, Olongapo City official records.
+  // Purok sub-zones (e.g. 1-A, 3E) are grouped under their parent purok.
+  const PUROK_STREETS = {
+    "Purok 1": [
+      "Horseshoe Drive",
+      "Filtration Road",
+      "Avocado Street",
+      "Manggahan Street",
+      "Manggahan Extension",
+      "Mabolo Street",
+      "Santolan Street",
+      "Rosal Street",
+      "Amapola Street",
+      "Sampaguita Street",
+      "Azucena Street",
+      "Camia Street",
+      "Begonia Street",
+      "Cabling Lane",
+      "Purok 1-A Road"
+    ],
+    "Purok 2": [
+      "Gordon Avenue",
+      "Rizal Avenue",
+      "Del Rosario Street",
+      "Tabacuhan Road",
+      "Balic-Balic Street",
+      "Cerezo Street",
+      "Ilang-Ilang Street",
+      "Lirio Street",
+      "Magnolia Street",
+      "Camia Extension"
+    ],
+    "Purok 3": [
+      "Gordon Avenue",
+      "Sampaguita Street (Purok 3E)",
+      "Magiting Street",
+      "Maliwanag Street",
+      "Mapayapa Street",
+      "Masaya Street",
+      "Masipag Street",
+      "Maligaya Street",
+      "Mapagkumbaba Street",
+      "Purok 3-A Road"
+    ],
+    "Purok 4": [
+      "Gordon Avenue",
+      "Sta. Rita Road",
+      "Leo Street",
+      "Libra Street",
+      "Virgo Street",
+      "Aries Street",
+      "Gemini Street",
+      "Taurus Street",
+      "Sagittarius Street",
+      "Capricorn Street"
+    ],
+    "Purok 5": [
+      "Gordon Avenue",
+      "Bagumbayan Street",
+      "Lanzones Street",
+      "Mangga Street",
+      "Guyabano Street",
+      "Chico Street",
+      "Siniguelas Street",
+      "Bayabas Street",
+      "Papaya Street",
+      "Caimito Street"
+    ],
+    "Purok 6": [
+      "Gordon Avenue",
+      "Holy Spirit Drive",
+      "Holy Spirit Village Road (Purok 6E)",
+      "Tabacuhan Street",
+      "Casimiro Street",
+      "Rizal Avenue Extension",
+      "San Jose Street",
+      "San Roque Street",
+      "Del Pilar Street",
+      "Burgos Street"
+    ],
+    "Purok 7": [
+      "Gordon Avenue",
+      "Katipunan Street",
+      "Maharlika Street",
+      "Kabayani Street",
+      "Bayanihan Street",
+      "Pagkakaisa Street",
+      "Kalayaan Street",
+      "Mabini Street",
+      "Luna Street",
+      "Bonifacio Street"
+    ],
+    "Purok 8": [
+      "Gordon Avenue",
+      "Maunlad Street",
+      "Malinis Street",
+      "Bayani Street",
+      "Cristobal Street",
+      "Dominguez Street",
+      "Bacay Street",
+      "Nebrida Street",
+      "Piano Street",
+      "Sevilla Street"
+    ],
+    "Purok 9": [
+      "Sta. Rita Road",
+      "Riverside Drive",
+      "Mabayuan Road",
+      "Kanlaon Street",
+      "Apo Street",
+      "Pulag Street",
+      "Halcon Street",
+      "Baco Street",
+      "Tabayoc Street",
+      "Mayon Extension"
+    ],
+    "Purok 10": [
+      "Gordon Avenue Extension",
+      "Narra Street",
+      "Molave Street",
+      "Yakal Street",
+      "Kamagong Street",
+      "Ipil Street",
+      "Tindalo Street",
+      "Acacia Street",
+      "Banaba Street",
+      "Dao Street"
+    ],
+    "Purok 11": [
+      "Gordon Avenue Extension",
+      "Aguho Street",
+      "Dao Extension",
+      "Bitangcol Street",
+      "Cristobal Extension",
+      "Bacay Extension",
+      "Donnabel Street",
+      "Ariola Street",
+      "Arreza Street",
+      "Pangcatan Street"
+    ],
+    "Purok 12": [
+      "Sta. Rita Road",
+      "Rizal Street",
+      "Aguinaldo Street",
+      "Osias Street",
+      "Quezon Street",
+      "Laurel Street",
+      "Magsaysay Street",
+      "Garcia Street",
+      "Macapagal Street",
+      "Marcos Street"
+    ],
+    "Purok 13": [
+      "Sta. Rita Road",
+      "Labanos Street",
+      "Sitaw Street",
+      "Pechay Street",
+      "Kangkong Street",
+      "Talong Street",
+      "Kamatis Street",
+      "Patola Street",
+      "Ampalaya Street",
+      "Sigarilyas Street"
+    ],
+    "Purok 14": [
+      "Sta. Rita Road",
+      "Sampaguita Extension",
+      "Ilang-Ilang Extension",
+      "Rosal Extension",
+      "Amapola Extension",
+      "Boundary Road",
+      "New Road",
+      "End Road",
+      "Riverside Extension",
+      "Mabayuan Extension"
+    ]
+  };
+
+  function onPurokChange() {
+    const purokSel  = document.getElementById("addrPurok");
+    const streetSel = document.getElementById("addrStreet");
+    const purok     = purokSel.value;
+
+    // Reset street selector
+    streetSel.innerHTML = "<option value='' disabled selected>Select street</option>";
+    streetSel.disabled  = !purok;
+    streetSel.style.background  = purok ? "#fafafa" : "#f3f4f6";
+    streetSel.style.cursor      = purok ? "pointer"  : "not-allowed";
+
+    if (purok && PUROK_STREETS[purok]) {
+      PUROK_STREETS[purok].forEach(st => {
+        const o   = document.createElement("option");
+        o.value   = st;
+        o.textContent = st;
+        streetSel.appendChild(o);
+      });
+    }
+    buildAddressField();
+  }
+
+  function buildAddressField() {
+    const purok   = document.getElementById("addrPurok")?.value  || "";
+    const street  = document.getElementById("addrStreet")?.value || "";
+    const houseNo = (document.getElementById("addrHouseNo")?.value || "").trim();
+    const addrEl  = document.getElementById("address");
+    if (!addrEl) return;
+
+    if (!purok || !street) {
+      addrEl.value = "";
+      return;
+    }
+    const parts = [];
+    if (houseNo) parts.push(houseNo);
+    parts.push(street);
+    parts.push(purok);
+    parts.push("Barangay Sta. Rita");
+    parts.push("Olongapo City");
+    parts.push("Zambales 2200");
+    addrEl.value = parts.join(", ");
+  }
+
+  // Focus ring on selects
+  document.addEventListener("DOMContentLoaded", () => {
+    ["addrPurok", "addrStreet"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("focus",  () => { el.style.borderColor = "#1a2cff"; el.style.background = "#fff"; });
+      el.addEventListener("blur",   () => { el.style.borderColor = el.value ? "#1a2cff" : "#d1d5db"; });
+    });
+  });
+
+  function residentCheckStrength(val) {
+    const fill  = document.getElementById('residentStrengthFill');
+    const label = document.getElementById('residentStrengthLabel');
+    const hints = document.getElementById('residentStrengthHints');
+    if (!fill || !label) return;
+    if (!val) { fill.style.width='0'; label.textContent=''; if(hints) hints.textContent=''; return; }
+    let score = 0;
+    if (val.length >= 8)            score++;
+    if (/[A-Z]/.test(val))          score++;
+    if (/[a-z]/.test(val))          score++;
+    if (/[0-9]/.test(val))          score++;
+    if (/[^A-Za-z0-9]/.test(val))   score++;
+    const levels = [
+      { pct:'10%', color:'#ef4444', text:'Very Weak' },
+      { pct:'30%', color:'#f97316', text:'Weak' },
+      { pct:'55%', color:'#eab308', text:'Fair' },
+      { pct:'80%', color:'#22c55e', text:'Strong' },
+      { pct:'100%',color:'#16a34a', text:'Very Strong' }
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    fill.style.width = lvl.pct;
+    fill.style.background = lvl.color;
+    label.textContent = lvl.text;
+    label.style.color = lvl.color;
+    if (hints) {
+      const missing = [];
+      if (val.length < 8)             missing.push('8+ chars');
+      if (!/[A-Z]/.test(val))         missing.push('uppercase');
+      if (!/[a-z]/.test(val))         missing.push('lowercase');
+      if (!/[0-9]/.test(val))         missing.push('number');
+      if (!/[^A-Za-z0-9]/.test(val))  missing.push('symbol');
+      hints.textContent = missing.length ? 'Needs: ' + missing.join(', ') : '';
+    }
+  }
+
+  function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    const svg = btn.querySelector('svg');
+    if (!svg) return;
+    svg.innerHTML = show
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+</script>
+<script>
+(function() {
+  const idBox   = document.getElementById('idUploadBox');
+  const idInput = document.getElementById('idFileInput');
+  const idErr   = document.getElementById('idUploadError');
+  if (!idBox || !idInput) return;
+
+  const MAX = 2 * 1024 * 1024;
+  const ALLOWED = ['image/jpeg','image/png','image/webp','application/pdf'];
+
+  function validateIdFile(file) {
+    if (!ALLOWED.includes(file.type)) return 'Only JPEG, PNG, WEBP, or PDF files are accepted.';
+    if (file.size > MAX) return `File is ${(file.size/1024/1024).toFixed(1)} MB — max allowed is 2 MB.`;
+    return null;
+  }
+
+  function showIdFile(file) {
+    idBox.classList.remove('id-upload-box--error');
+    idBox.classList.add('id-upload-box--success');
+    const isImg = file.type.startsWith('image/');
+    idBox.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${isImg
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`}
+          <div style="text-align:left;">
+            <div style="font-size:13px;font-weight:600;color:#15803d;word-break:break-all;max-width:200px;">✓ ${file.name}</div>
+            <div style="font-size:11px;color:#6b7280;">${(file.size/1024).toFixed(0)} KB</div>
+          </div>
+        </div>
+        <button type="button" onclick="window._clearIdFile(event)"
+                style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;
+                       background:#fee2e2;border:none;border-radius:8px;cursor:pointer;color:#dc2626;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`;
+    if (idErr) idErr.style.display = 'none';
+  }
+
+  function resetIdBox() {
+    idBox.classList.remove('id-upload-box--error','id-upload-box--success');
+    idBox.innerHTML = `
+      <div style="text-align:center;pointer-events:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+             fill="none" stroke="#9ca3af" stroke-width="1.5"
+             style="display:block;margin:0 auto 8px;">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+        <span style="font-size:14px;color:#374151;font-weight:600;">Click to browse</span>
+        <span style="font-size:13px;color:#6b7280;"> or drag &amp; drop</span><br>
+        <span style="font-size:12px;color:#9ca3af;margin-top:4px;display:inline-block;">
+          JPEG · PNG · WEBP · PDF &nbsp;·&nbsp; Max 2 MB
+        </span>
+      </div>`;
+  }
+
+  window._clearIdFile = function(e) {
+    e.stopPropagation();
+    idInput.value = '';
+    window._selectedIdFile = null;
+    resetIdBox();
+  };
+
+  idInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const err = validateIdFile(file);
+    if (err) {
+      idErr.textContent = err; idErr.style.display = 'block';
+      idBox.classList.add('id-upload-box--error');
+      idInput.value = '';
+      return;
+    }
+    window._selectedIdFile = file;
+    showIdFile(file);
+  });
+
+  idBox.addEventListener('dragover',  (e) => { e.preventDefault(); idBox.style.borderColor='#1a2cff'; });
+  idBox.addEventListener('dragleave', ()  => { idBox.style.borderColor=''; });
+  idBox.addEventListener('drop', (e) => {
+    e.preventDefault(); idBox.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const err = validateIdFile(file);
+    if (err) { idErr.textContent = err; idErr.style.display = 'block'; idBox.classList.add('id-upload-box--error'); return; }
+    window._selectedIdFile = file;
+    showIdFile(file);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Staff Dashboard | BarangayFlow</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-left">
+    <img src="/images/BARANGAYFLOW.logo2.png">
+    <h2>BarangayFlow</h2>
+  </div>
+
+  <!-- Paste this line immediately after </div> of .nav-left, before <div class="nav-right"> -->
+<button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false"
+  onclick="this.setAttribute('aria-expanded',
+    this.getAttribute('aria-expanded')==='true' ? 'false' : 'true');
+    this.closest('.navbar').querySelector('.nav-right').classList.toggle('open');">
+  <span></span><span></span><span></span>
+</button>
+
+  <div class="nav-right">
+    <a href="#" id="nav-dash" class="active" onclick="showTab('dashboard')">Dashboard</a>
+    <a href="#" id="nav-ann" onclick="showTab('announcements')" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
+    <a href="#" id="adminNav">Admin</a>
+    <a href="#" onclick="logout(); return false;" style="display:inline-flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div id="tab-dashboard">
+    <div class="admin-header">
+      <p>Barangay Staff Panel</p>
+      <h3 id="adminName">Loading...</h3>
+    </div>
+
+    <h3 class="section-header">Dashboard Overview</h3>
+
+    <div class="cards">
+      <div class="card">
+        <p>Total Requests</p>
+        <h1 id="total">0</h1>
+        <small>All time</small>
+      </div>
+      <div class="card highlight">
+        <p>Pending Review</p>
+        <h1 id="pending">0</h1>
+        <small>Requires action</small>
+      </div>
+      <div class="card">
+        <p>In Progress</p>
+        <h1 id="progress">0</h1>
+        <small>Being processed</small>
+      </div>
+      <div class="card">
+        <p>Ready for Pickup</p>
+        <h1 id="pickup">0</h1>
+        <small>Notify residents</small>
+      </div>
+      <div class="card">
+        <p>Completed</p>
+        <h1 id="completed">0</h1>
+        <small>This month</small>
+      </div>
+    </div>
+
+    <div class="filters">
+      <input id="searchInput" placeholder="Search by Request ID, Name, or Service Type...">
+      <select id="statusFilter">
+        <option value="all">Filter: All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Ready for Pickup">Ready for Pickup</option>
+        <option value="Completed">Completed</option>
+      </select>
+      <select id="serviceFilter">
+        <option value="all">Filter: Service Type</option>
+        <option value="indigency">Certificate of Indigency</option>
+        <option value="residency">Certificate of Residency</option>
+        <option value="business_permit">Business Permit</option>
+        <option value="clearance">Barangay Clearance</option>
+        <option value="job_seeker">First Time Job Seeker</option>
+        <option value="barangay_id">Barangay ID</option>
+        <option value="complaint">Complaint / Blotter</option>
+        <option value="medical">Medical Assistance</option>
+      </select>
+    </div>
+
+    <div class="section-row">
+      <h3 id="tableTitle">All Requests</h3>
+      <div id="pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-head">
+        <span>Request ID</span>
+        <span>Resident Name</span>
+        <span>Service Type</span>
+        <span>Submitted</span>
+        <span>Priority</span>
+        <span>Status</span>
+        <span>Assigned To</span>
+        <span>Actions</span>
+      </div>
+      <div id="adminTable"></div>
+    </div>
+    <div id="pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
+  </div>
+
+  <div id="tab-announcements" style="display: none;">
+    <div class="admin-header">
+        <p>Community News</p>
+        <h3>Active Announcements</h3>
+    </div>
+    <div id="staffAnnList" style="margin-top:20px;">
+        <p>Loading announcements...</p>
+    </div>
+  </div>
+
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ANNOUNCEMENT DETAIL MODAL -->
+<div id="annDetailModal" class="ann-modal-overlay" role="dialog" aria-modal="true" onclick="if(event.target===this)closeAnnModal()">
+  <div class="ann-modal-card">
+    <div class="ann-modal-header">
+      <h3 id="annDetailTitle">Announcement</h3>
+      <button class="ann-modal-close" onclick="closeAnnModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="ann-modal-body">
+      <p id="annDetailDate" style="font-size:12px;color:#6b7280;margin-bottom:14px;"></p>
+      <p id="annDetailContent" style="font-size:14px;color:#374151;line-height:1.75;"></p>
+    </div>
+  </div>
+</div>
+<style>
+.ann-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;align-items:center;justify-content:center;padding:20px;}
+.ann-modal-overlay.open{display:flex;animation:annFadeIn .2s ease;}
+@keyframes annFadeIn{from{opacity:0}to{opacity:1}}
+.ann-modal-card{background:#fff;border-radius:16px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.18);animation:annPop .25s cubic-bezier(.34,1.2,.64,1);}
+@keyframes annPop{from{transform:scale(0.95) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.ann-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 14px;border-bottom:1px solid #f3f4f6;}
+.ann-modal-header h3{font-size:16px;font-weight:700;color:#1f2937;margin:0;flex:1;}
+.ann-modal-close{background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;padding:0 4px;line-height:1;}
+.ann-modal-close:hover{color:#374151;}
+.ann-modal-body{padding:18px 20px 24px;}
+</style>
+<!-- STAFF LOGOUT CONFIRMATION MODAL -->
+<div id="staffLogoutModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="staffLogoutModalTitle">
+  <div class="modal-card" style="max-width:380px;text-align:center;">
+    <div class="modal-header" style="flex-direction:column;align-items:center;gap:12px;padding-bottom:12px;">
+      <div style="width:60px;height:60px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;color:#ef4444;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <h3 id="staffLogoutModalTitle">Sign Out</h3>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:0 24px 8px;">
+      <p style="font-size:14px;color:var(--muted,#6b7280);line-height:1.6;">Are you sure you want to sign out of the staff panel?</p>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="cancelStaffLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:1.5px solid #e5e7eb;background:white;color:#1f2937;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cancel
+      </button>
+      <button id="confirmStaffLogoutBtn" onclick="confirmStaffLogout()" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#ef4444;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/js/admin.js"></script>
+
+</body>
+</html>

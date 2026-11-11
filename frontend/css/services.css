@@ -1,0 +1,257 @@
+/* ==========================================================================
+   SERVICES.CSS — Admin/Table View
+   iPhone-first: safe-area, horizontal scroll for table, touch targets
+   ========================================================================== */
+
+:root {
+  --primary:       #1a2cff;
+  --primary-dark:  #0000cc;
+  --bg:            #f4f4f4;
+  --card:          #ffffff;
+  --text:          #1a1a1a;
+  --muted:         #666666;
+  --border:        #e5e7eb;
+  --radius:        12px;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow-x: hidden;
+}
+
+button { cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+
+/* ── NAVBAR ──────────────────────────────────────────────────── */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  /* Safe area for notch */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  background: linear-gradient(to right, var(--primary), var(--primary-dark));
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 12px rgba(26,44,255,0.25);
+}
+
+.nav-left { display: flex; align-items: center; gap: 10px; }
+.nav-left img { width: 30px; height: 30px; object-fit: contain; }
+.nav-left h2  { font-size: 16px; font-weight: 700; color: white; }
+
+.nav-right {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-right a {
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 9px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: 0.2s;
+  white-space: nowrap;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+.nav-right a:hover,
+.nav-right a.active { background: rgba(255,255,255,0.18); color: white; font-weight: 600; }
+
+.nav-right a::after { display: none; } /* Remove desktop underline animation on mobile */
+
+/* ── CONTAINER ───────────────────────────────────────────────── */
+.container {
+  padding: 20px 16px;
+  padding-bottom: max(40px, calc(env(safe-area-inset-bottom) + 24px));
+}
+
+/* ── SECTION ROW (header + button) ──────────────────────────── */
+.section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section-row h2,
+.section-row h3 { color: var(--primary); font-size: 18px; font-weight: 700; }
+
+/* ── CARD ────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+
+.card h4 { margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+
+/* ── FILTERS ─────────────────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-direction: column;   /* Stack on mobile */
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.filters input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  outline: none;
+  font-size: 16px;          /* 16px = no iPhone auto-zoom */
+  font-family: inherit;
+  transition: 0.2s;
+  background: white;
+}
+.filters input:focus { border-color: var(--primary-dark); }
+
+/* ── ACTION BUTTON ───────────────────────────────────────────── */
+.action-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: 0.2s;
+  min-height: 44px;         /* Apple touch target */
+  white-space: nowrap;
+}
+.action-btn:hover  { background: var(--primary-dark); transform: translateY(-1px); }
+.action-btn:active { opacity: 0.88; transform: scale(0.98); }
+
+/* ── TABLE — horizontal scroll on small screens ──────────────── */
+.table-container {
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: white;
+  /* Key: allow horizontal scroll on iPhone instead of breaking layout */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum width keeps columns readable; table scrolls horizontally */
+.table-head,
+.row {
+  min-width: 560px;
+}
+
+/* HEADER */
+.table-head {
+  background: linear-gradient(to right, var(--primary), #0b0bbf);
+  color: white;
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr 2fr;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ROW */
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr 2fr;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+  transition: 0.2s;
+  font-size: 13px;
+}
+.row:hover { background: #f5f7ff; }
+
+/* ── STATUS ──────────────────────────────────────────────────── */
+.status { font-weight: 600; }
+.status.active   { color: #16a34a; }
+.status.inactive { color: #dc2626; }
+
+/* ── ROW ACTION BUTTONS ───────────────────────────────────────── */
+.row span button {
+  margin-right: 6px;
+  margin-bottom: 4px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 34px;         /* Touch-friendly */
+}
+
+/* ── EMPTY STATE ─────────────────────────────────────────────── */
+#serviceTable p {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ── TABLET 600px+ ───────────────────────────────────────────── */
+@media (min-width: 600px) {
+  .navbar { padding: 0 32px; height: 60px; }
+  .nav-left h2 { font-size: 18px; }
+  .nav-right a { font-size: 13px; padding: 7px 11px; }
+  .nav-right a::after { display: block; } /* Restore underline animation */
+
+  .container { padding: 28px 28px 50px; }
+
+  .filters { flex-direction: row; }
+  .filters input { flex: 1; }
+
+  .table-head,
+  .row { min-width: unset; font-size: 14px; }
+  .table-head { padding: 12px 20px; }
+  .row { padding: 14px 20px; }
+}
+
+/* ── DESKTOP 900px+ ──────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .navbar { padding: 18px 40px; height: auto; }
+  .container { padding: 40px; }
+  .section-row h2, .section-row h3 { font-size: 20px; }
+}
+
+/* === ENHANCED ANIMATIONS & MOBILE POLISH === */
+:root { --ease-spring: cubic-bezier(0.34,1.56,0.64,1); --ease-smooth: cubic-bezier(0.22,1,0.36,1); }
+
+button, .btn, input[type="submit"] {
+  transition: all 0.22s var(--ease-spring);
+}
+button:hover, .btn:hover {
+  transform: translateY(-2px);
+}
+button:active, .btn:active {
+  transform: scale(0.97) translateY(0);
+}
+
+@media (max-width: 480px) {
+  .container, .form-card, .card, .box { padding: 18px 14px !important; }
+  input, select, textarea { font-size: 16px !important; }
+}

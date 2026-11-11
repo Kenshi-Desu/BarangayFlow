@@ -1,0 +1,182 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════════
+    //  HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    function adminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    function adminExists() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return adminExists() && adminData().role == role;
+    }
+
+    function isAdmin()        { return hasRole("admin"); }
+    function isIT()           { return hasRole("it");    }
+    function isStaffOrAbove() {
+      return adminExists()
+        && adminData().role in ["staff", "admin", "it"];
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  USERS
+    //  Residents own their profile; staff+ can read all.
+    // ═══════════════════════════════════════════════════════
+    match /users/{userId} {
+      allow read:   if isOwner(userId) || isStaffOrAbove();
+      allow create: if isOwner(userId);
+
+      // Residents can update their own profile BUT cannot touch
+      // verification-controlled fields (set only by admin on approval/rejection).
+      allow update: if isStaffOrAbove()
+        || (
+          isOwner(userId)
+          && !("accountStatus"  in request.resource.data)
+          && !("active"         in request.resource.data)
+          && !("verifiedAt"     in request.resource.data)
+          && !("rejectedAt"     in request.resource.data)
+          && !("rejectionReason" in request.resource.data)
+        );
+
+      allow delete: if isAdmin() || isIT();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ADMINS
+    // ═══════════════════════════════════════════════════════
+    match /admins/{adminId} {
+      allow read:   if isOwner(adminId) || isAdmin() || isIT();
+      allow create: if isIT();
+      allow update: if isIT()
+                    || (isAdmin() && !("role" in request.resource.data));
+      allow delete: if isIT();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  REQUESTS
+    //
+    //  READ    : resident reads own 24/7; staff reads all.
+    //  CREATE  : resident — any time (gentle reminder shown client-side).
+    //            staff   — any time (walk-ins, corrections).
+    //  UPDATE  : resident — own Pending requests only.
+    //            staff   — any time (status, docVerification,
+    //                      docInvalidReason, pickup schedule …).
+    //  DELETE  : resident — own Pending only; admin/IT any.
+    // ═══════════════════════════════════════════════════════
+    match /requests/{requestId} {
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid
+        || isStaffOrAbove()
+      );
+
+      allow create: if isAuth() && (
+        request.resource.data.userId == request.auth.uid
+        || isStaffOrAbove()
+      );
+
+      allow update: if isAuth() && (
+        (
+          resource.data.userId == request.auth.uid
+          && resource.data.status == "Pending"
+        )
+        || isStaffOrAbove()
+      );
+
+      allow delete: if isAuth() && (
+        ( resource.data.userId == request.auth.uid
+          && resource.data.status == "Pending" )
+        || isAdmin()
+        || isIT()
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SERVICES — read by all authenticated; written by admin.
+    // ═══════════════════════════════════════════════════════
+    match /services/{serviceId} {
+      allow read:  if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ANNOUNCEMENTS
+    // ═══════════════════════════════════════════════════════
+    match /announcements/{annId} {
+      allow read:  if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SYSTEM CONFIG — public read (maintenance flag); IT write.
+    // ═══════════════════════════════════════════════════════
+    match /system/{docId} {
+      allow read:  if true;
+      allow write: if isIT();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  AUDIT LOGS
+    // ═══════════════════════════════════════════════════════
+    match /logs/{logId} {
+      allow read:   if isAdmin() || isIT();
+      allow create: if isStaffOrAbove();
+      allow update: if false;
+      allow delete: if isIT();
+    }
+
+
+    // ═══════════════════════════════════════════════════════
+    //  DOCUMENT TEMPLATES  (NEW — Dynamic Template System)
+    //
+    //  Staff+ can read at print time (review.js / it.js).
+    //  Only barangay-admin can create / update / delete.
+    //  Version sub-collection is immutable once written.
+    // ═══════════════════════════════════════════════════════
+    match /documentTemplates/{tplId} {
+      allow read:   if isStaffOrAbove();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+
+      match /versions/{versionId} {
+        allow read:   if isStaffOrAbove();
+        allow create: if isAdmin();
+        allow update: if false;        // immutable
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  BACKUPS — IT only
+    // ═══════════════════════════════════════════════════════
+    match /backups/{docId}    { allow read, write: if isIT(); }
+    match /backupMeta/{docId} { allow read, write: if isIT(); }
+
+    // ═══════════════════════════════════════════════════════
+    //  PENDING ADMINS (registration queue before IT approval)
+    // ═══════════════════════════════════════════════════════
+    match /pendingAdmins/{uid} {
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow read:   if isOwner(uid) || isIT();
+      allow update: if isIT();
+      allow delete: if isIT();
+    }
+
+  }
+}

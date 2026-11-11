@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login | BarangayFlow</title>
+  <link rel="stylesheet" href="/css/admin-login.css">
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Live animated background elements -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div id="particles"></div>
+
+<div class="container">
+
+  <div class="header">
+    <a href="index.html" class="logo">
+      <img src="/images/BarangayFlow.Logo.png" alt="Logo">
+      <h2>BarangayFlow</h2>
+    </a>
+    <a href="index.html" class="back-btn">
+      <img src="/images/icon4.png" alt="Back">
+    </a>
+  </div>
+
+  <div class="login-box">
+    <div class="lock-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h1>Staff Login</h1>
+    <p class="subtitle">Authorized Personnel Only</p>
+
+    <div id="loginError" style="display:none; background:rgba(239,68,68,0.12); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:10px 14px; font-size:14px; margin-bottom:16px;"></div>
+
+    <form onsubmit="login(event)">
+      <label>Username or Email</label>
+      <div class="input-wrap">
+        <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <input id="login-username" type="text" placeholder="admin1234" required autocomplete="username">
+      </div>
+
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" class="has-eye">
+        <button type="button" class="eye-btn" onclick="togglePwd('login-password',this)" aria-label="Toggle password visibility">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+
+      <!-- NDA Acknowledgement -->
+      <div class="nda-wrap" id="ndaWrap">
+        <label class="nda-label">
+          <input type="checkbox" id="ndaCheck" required>
+          <span>I have read and agree to the <button type="button" class="nda-link" onclick="openNdaModal()">Non-Disclosure Agreement</button> and understand that all barangay data is strictly confidential.</span>
+        </label>
+        <div id="ndaError" class="nda-error" style="display:none;">You must acknowledge the NDA to proceed.</div>
+      </div>
+
+      <button id="loginBtn" type="submit">Login</button>
+
+      <div style="text-align:center; margin-top:18px; font-size:13px; color:#6b7280;">
+        No account yet? <a href="admin-register.html" style="color:#1a2cff; font-weight:600; text-decoration:none;">Register here</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  // Spawn floating particles for dark theme
+  const pContainer = document.getElementById('particles');
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 5 + 2;
+    p.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      left: ${Math.random() * 100}%;
+      animation-duration: ${Math.random() * 16 + 10}s;
+      animation-delay: ${Math.random() * 10}s;
+      opacity: ${Math.random() * 0.4 + 0.1};
+    `;
+    pContainer.appendChild(p);
+  }
+</script>
+
+<script type="module" src="/js/admin-auth.js"></script>
+
+<style>
+  /* ── Eye-toggle button — mobile-safe tap target ── */
+  .eye-btn {
+    /* Beat global button{width:100%; margin-top:8px} and button:active{transform} */
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    /* positioning */
+    position: absolute !important;
+    right: 2px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    /* appearance */
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    /* content */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #9ca3af !important;
+    cursor: pointer;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    z-index: 2;
+  }
+  .eye-btn:hover { color: #b0b8c8 !important; background: none !important; transform: translateY(-50%) !important; }
+  .eye-btn:active { color: #e5e7eb !important; background: none !important; transform: translateY(-50%) !important; opacity: 1 !important; }
+  input.has-eye { padding-right: 48px !important; }
+  /* Hide browser native password-reveal button */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear { display: none; }
+  input[type="password"]::-webkit-credentials-auto-fill-button { display: none !important; }
+</style>
+<script>
+  function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    const svg = btn.querySelector('svg');
+    if (!svg) return;
+    svg.innerHTML = show
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+</script>
+
+<!-- NDA Modal -->
+<div class="nda-overlay" id="ndaOverlay" onclick="closeNdaIfOutside(event)">
+  <div class="nda-modal" id="ndaModal">
+    <div class="nda-modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <h3>Non-Disclosure Agreement</h3>
+      </div>
+      <button class="nda-close-btn" onclick="closeNdaModal()" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nda-modal-body">
+      <div class="nda-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="nda-title">Barangay Sta. Rita Staff NDA</div>
+      <div class="nda-subtitle">Olongapo City, Zambales — Effective upon login</div>
+
+      <div class="nda-section">
+        <h4>1. Scope of Confidentiality</h4>
+        <p>All information accessed through BarangayFlow — including but not limited to resident personal data, contact details, home addresses, request histories, health information, and internal barangay records — is strictly confidential and protected under the Data Privacy Act of 2012 (Republic Act No. 10173).</p>
+      </div>
+      <div class="nda-section">
+        <h4>2. Authorized Use Only</h4>
+        <p>Access to BarangayFlow is granted solely for official barangay business. Staff must not access, copy, print, transmit, or disclose any resident data outside of authorized workflows. Unauthorized use of data constitutes a violation of this agreement and applicable law.</p>
+      </div>
+      <div class="nda-section">
+        <h4>3. Account Security Obligations</h4>
+        <p>You are solely responsible for all activity performed under your account. You must never share your login credentials with any person. Upon suspicion of unauthorized access, you must immediately report it to the Barangay IT Officer. Sessions are not persisted across devices for security.</p>
+      </div>
+      <div class="nda-section">
+        <h4>4. Data Handling &amp; Document Control</h4>
+        <p>Printed barangay documents must be treated as official records. Physical copies must not be left unattended, shared with unauthorized persons, or disposed of improperly. Digital exports must only be stored in authorized barangay systems.</p>
+      </div>
+      <div class="nda-section">
+        <h4>5. Consequences of Violation</h4>
+        <p>Any violation of this agreement may result in immediate suspension of system access, administrative disciplinary action, and civil or criminal liability under RA 10173 and other applicable Philippine laws. The Barangay Sta. Rita reserves the right to pursue all available legal remedies.</p>
+      </div>
+      <div class="nda-section" style="border-bottom:none;">
+        <h4>6. Acknowledgement</h4>
+        <p>By checking the acknowledgement box and logging in, you confirm that you have read, understood, and agreed to be bound by this Non-Disclosure Agreement in its entirety.</p>
+      </div>
+    </div>
+    <div class="nda-modal-footer">
+      <button class="nda-agree-btn" onclick="agreeNda()">I Understand &amp; Agree</button>
+      <button class="nda-cancel-btn" onclick="closeNdaModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openNdaModal() {
+    document.getElementById("ndaOverlay").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeNdaModal() {
+    document.getElementById("ndaOverlay").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+  function closeNdaIfOutside(e) {
+    if (e.target === document.getElementById("ndaOverlay")) closeNdaModal();
+  }
+  function agreeNda() {
+    document.getElementById("ndaCheck").checked = true;
+    document.getElementById("ndaError").style.display = "none";
+    document.getElementById("ndaWrap").style.borderColor = "var(--success, #10b981)";
+    closeNdaModal();
+  }
+</script>
+
+</body>
+</html>

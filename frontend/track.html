@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Track Request | BarangayFlow</title>
+  <link rel="icon" href="/images/BarangayFlow.Logo.ico">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:       #1a2cff;
+      --primary-dark:  #0f1fbf;
+      --primary-light: #e8ebff;
+      --success:       #10b981;
+      --danger:        #ef4444;
+      --warning:       #f59e0b;
+      --bg:            #f0f2ff;
+      --card:          #ffffff;
+      --text:          #1f2937;
+      --muted:         #6b7280;
+      --border:        #e5e7eb;
+      --radius:        14px;
+      --shadow:        0 2px 12px rgba(26,44,255,0.08);
+      --shadow-md:     0 4px 20px rgba(26,44,255,0.14);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAVBAR ───────────────────────────────── */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      padding-top: env(safe-area-inset-top, 0px);
+      height: calc(60px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      box-shadow: 0 2px 20px rgba(26,44,255,0.25);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-left { display: flex; align-items: center; gap: 10px; }
+    .nav-left img { width: 30px; height: 30px; object-fit: contain; }
+    .nav-left h2 { font-size: 15px; font-weight: 700; color: #fff; }
+    .nav-right { display: flex; align-items: center; gap: 6px; }
+    .nav-right a {
+      color: rgba(255,255,255,.85);
+      font-size: 13px; font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: .18s;
+      text-decoration: none;
+      min-height: 44px;
+      display: flex; align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-right a:hover { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* ── MAIN LAYOUT ─────────────────────────── */
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px max(16px, env(safe-area-inset-left)) max(60px, calc(env(safe-area-inset-bottom) + 40px));
+    }
+
+    /* ── HERO ─────────────────────────────────── */
+    .hero-text {
+      text-align: center;
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+    .hero-text h1 {
+      font-size: clamp(18px, 5vw, 24px);
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.3;
+    }
+    .hero-text p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    /* ── SEARCH CARD ─────────────────────────── */
+    .search-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      padding: 24px 20px;
+      margin-bottom: 24px;
+    }
+    .search-card label {
+      font-size: 13px; font-weight: 600;
+      display: block; margin-bottom: 10px;
+    }
+
+    /* Stack vertically on mobile for clean full-width tap targets */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px; /* 16px prevents iOS auto-zoom */
+      font-family: inherit;
+      color: var(--text);
+      background: #fff;
+      transition: .18s;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .input-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,44,255,.1);
+    }
+    .input-group input::placeholder { color: #b0b7c3; }
+
+    .search-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .18s;
+      font-family: inherit;
+      min-height: 52px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .search-btn:hover   { background: var(--primary-dark); }
+    .search-btn:active  { transform: scale(0.98); }
+    .search-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .error-msg {
+      font-size: 13px;
+      color: var(--danger);
+      margin-top: 10px;
+      display: none;
+      background: #fee2e2;
+      padding: 10px 14px;
+      border-radius: 8px;
+    }
+
+    /* ── SPINNER ─────────────────────────────── */
+    .spinner {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 28px;
+    }
+    .spinner svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULT CARD ─────────────────────────── */
+    #resultBox { display: none; }
+
+    .result-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    .result-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      padding: 20px;
+    }
+    .result-header h3 {
+      font-size: clamp(15px, 4vw, 17px);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .result-header p {
+      font-size: 12px;
+      opacity: .75;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+    .result-body { padding: 20px; }
+
+    /* 2-col on wider, 1-col on narrow */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 400px) {
+      .info-grid { grid-template-columns: 1fr; }
+    }
+    .info-item p {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .info-item h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* ── STATUS BADGE ────────────────────────── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status-badge.pending   { background: #fef3c7; color: #b45309; }
+    .status-badge.progress  { background: #dbeafe; color: #1d4ed8; }
+    .status-badge.ready     { background: #d1fae5; color: #047857; }
+    .status-badge.completed { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .status-badge.rejected  { background: #fee2e2; color: #b91c1c; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* ── PICKUP BOX ──────────────────────────── */
+    .pickup-box {
+      margin-top: 16px;
+      padding: 16px;
+      background: #d1fae5;
+      border-radius: 10px;
+      border-left: 4px solid var(--success);
+      display: none;
+    }
+    .pickup-box h4 { font-size: 13px; font-weight: 700; color: #047857; }
+    .pickup-box p  { font-size: 13px; color: #065f46; margin-top: 5px; line-height: 1.5; }
+
+    /* ── NOTES BOX ───────────────────────────── */
+    .notes-box {
+      margin-top: 14px;
+      padding: 14px;
+      background: var(--primary-light);
+      border-radius: 10px;
+      border-left: 4px solid var(--primary);
+      display: none;
+    }
+    .notes-box h4 { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .5px; }
+    .notes-box p  { font-size: 13px; color: var(--text); margin-top: 5px; line-height: 1.5; }
+
+    /* ── TIMELINE ────────────────────────────── */
+    .timeline-section { margin-top: 22px; }
+    .timeline-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 16px;
+    }
+    .timeline { position: relative; padding-left: 26px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px; top: 10px; bottom: 10px;
+      width: 2px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+    .tl-item { position: relative; margin-bottom: 20px; }
+    .tl-item:last-child { margin-bottom: 0; }
+    .tl-dot {
+      position: absolute;
+      left: -22px; top: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border);
+      background: var(--card);
+    }
+    .tl-dot.done     { background: var(--success); border-color: var(--success); }
+    .tl-dot.active   { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(26,44,255,.15); }
+    .tl-dot.rejected-dot { background: var(--danger); border-color: var(--danger); }
+    .tl-title { font-size: 14px; font-weight: 600; line-height: 1.3; }
+    .tl-time  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .tl-note  { font-size: 12px; color: var(--muted); margin-top: 5px; font-style: italic; line-height: 1.5; }
+
+    /* ── BACK LINK ───────────────────────────── */
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+      padding: 14px;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="back-btn">
+    <img src="/images/BARANGAYFLOW.logo2.png" alt="BarangayFlow Logo"></a>
+    <h2>BarangayFlow</h2>
+  </div>
+  <div class="nav-right">
+    <a href="/login.html">Login</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="hero-text">
+    <h1><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Track Your Request</h1>
+    <p>Enter your Request ID to check your application status — no login needed.</p>
+  </div>
+
+  <div class="search-card">
+    <label for="trackInput">Request ID</label>
+    <div class="input-group">
+      <input
+        type="text"
+        id="trackInput"
+        placeholder="e.g. aBcDeFgHiJkL"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+      />
+      <button class="search-btn" id="trackBtn" onclick="trackRequest()">Track Request</button>
+    </div>
+    <p class="hint">Your Request ID can be found on your dashboard after submitting a request.</p>
+    <p class="error-msg" id="errorMsg"></p>
+  </div>
+
+  <div class="spinner" id="spinner">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1a2cff" stroke-width="2.5" stroke-linecap="round">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    </svg>
+  </div>
+
+  <div id="resultBox">
+    <div class="result-card">
+      <div class="result-header">
+        <h3 id="resService">—</h3>
+        <p id="resId">Request ID: —</p>
+      </div>
+      <div class="result-body">
+
+        <div class="info-grid">
+          <div class="info-item">
+            <p>Applicant</p>
+            <h4 id="resName">—</h4>
+          </div>
+          <div class="info-item">
+            <p>Date Submitted</p>
+            <h4 id="resDate">—</h4>
+          </div>
+          <div class="info-item">
+            <p>Current Status</p>
+            <h4 id="resBadge">—</h4>
+          </div>
+          <div class="info-item">
+            <p>Last Updated</p>
+            <h4 id="resUpdated">—</h4>
+          </div>
+        </div>
+
+        <div class="pickup-box" id="pickupBox">
+          <h4><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Pickup Schedule</h4>
+          <p id="pickupText">—</p>
+        </div>
+
+        <div class="notes-box" id="notesBox">
+          <h4><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Barangay Note</h4>
+          <p id="notesText">—</p>
+        </div>
+
+        <div class="timeline-section">
+          <div class="timeline-label">Request Progress</div>
+          <div class="timeline" id="resTimeline"></div>
+        </div>
+
+      </div>
+    </div>
+    <a href="/track.html" class="back-link" onclick="resetTracker(); return false;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 18 9 12 15 6"/></svg>Track another request</a>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDBCjZRktFMz_SqNSZ_KuLAl_eCwgKME9c",
+    authDomain: "barangayflow.firebaseapp.com",
+    projectId: "barangayflow",
+    storageBucket: "barangayflow.firebasestorage.app",
+    messagingSenderId: "212844211614",
+    appId: "1:212844211614:web:c15e372ebb71d3d2867a8f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  const STATUS_ORDER = ["Pending", "In Progress", "Ready for Pickup", "Completed"];
+
+  function getStatusClass(s) {
+    const m = { "Pending":"pending","In Progress":"progress","Ready for Pickup":"ready","Completed":"completed","Rejected":"rejected" };
+    return m[s] || "";
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return "—";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString("en-PH", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  window.trackRequest = async function () {
+    const id = document.getElementById("trackInput").value.trim();
+    document.getElementById("errorMsg").style.display = "none";
+    document.getElementById("resultBox").style.display = "none";
+
+    if (!id) { showError("Please enter a Request ID."); return; }
+
+    const btn     = document.getElementById("trackBtn");
+    const spinner = document.getElementById("spinner");
+    btn.disabled = true;
+    btn.textContent = "Searching…";
+    spinner.style.display = "flex";
+
+    try {
+      const snap = await getDoc(doc(db, "requests", id));
+
+      if (!snap.exists()) {
+        showError("No request found with that ID. Please check and try again.");
+        return;
+      }
+
+      const r  = snap.data();
+      const sc = getStatusClass(r.status);
+
+      document.getElementById("resService").textContent  = r.serviceType || "Service Request";
+      document.getElementById("resId").textContent       = "ID: " + id;
+      document.getElementById("resName").textContent     = r.fullName    || "—";
+      document.getElementById("resDate").textContent     = fmtDate(r.createdAt);
+      document.getElementById("resUpdated").textContent  = fmtDate(r.updatedAt);
+      document.getElementById("resBadge").innerHTML      = `<span class="status-badge ${sc}"><span class="dot"></span>${r.status}</span>`;
+
+      // Pickup schedule
+      const pickupBox = document.getElementById("pickupBox");
+      if (r.pickupDate) {
+        const pd  = r.pickupDate.toDate ? r.pickupDate.toDate() : new Date(r.pickupDate);
+        const fmt = pd.toLocaleDateString("en-PH", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+        let timeFmt = "";
+        if (r.pickupTime) {
+          const [hStr, mStr] = r.pickupTime.split(":");
+          const h = parseInt(hStr, 10);
+          const m = mStr || "00";
+          const period = h >= 12 ? "PM" : "AM";
+          const h12 = h % 12 === 0 ? 12 : h % 12;
+          timeFmt = ` at ${h12}:${m} ${period}`;
+        }
+        document.getElementById("pickupText").textContent =
+          fmt + timeFmt + " — Please bring a valid ID.";
+        pickupBox.style.display = "block";
+      } else {
+        pickupBox.style.display = "none";
+      }
+
+      // Admin notes
+      const notesBox = document.getElementById("notesBox");
+      if (r.adminNotes) {
+        document.getElementById("notesText").textContent = r.adminNotes;
+        notesBox.style.display = "block";
+      } else {
+        notesBox.style.display = "none";
+      }
+
+      // Timeline
+      const tlEl = document.getElementById("resTimeline");
+      if (r.status === "Rejected") {
+        tlEl.innerHTML = `
+          <div class="tl-item">
+            <div class="tl-dot done"></div>
+            <div class="tl-title">Submitted</div>
+            <div class="tl-time">${fmtDate(r.createdAt)}</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot rejected-dot"></div>
+            <div class="tl-title" style="color:var(--danger)">Rejected</div>
+            <div class="tl-time">${fmtDate(r.updatedAt)}</div>
+            ${r.adminNotes ? `<div class="tl-note">${r.adminNotes}</div>` : ""}
+          </div>`;
+      } else {
+        const currentIdx = STATUS_ORDER.indexOf(r.status);
+        tlEl.innerHTML = STATUS_ORDER.map((step, i) => {
+          const isDone   = i < currentIdx;
+          const isActive = i === currentIdx;
+          const dotClass = isDone ? "done" : isActive ? "active" : "";
+          const color    = isActive ? "var(--primary)" : isDone ? "var(--success)" : "var(--muted)";
+          const time     = i === 0 ? fmtDate(r.createdAt) : isActive ? fmtDate(r.updatedAt) : "";
+          return `
+            <div class="tl-item">
+              <div class="tl-dot ${dotClass}"></div>
+              <div class="tl-title" style="color:${color}">${step}</div>
+              ${time ? `<div class="tl-time">${time}</div>` : ""}
+            </div>`;
+        }).join("");
+      }
+
+      document.getElementById("resultBox").style.display = "block";
+      setTimeout(() => {
+        document.getElementById("resultBox").scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+
+    } catch (err) {
+      showError("Something went wrong. Please try again.");
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Track Request";
+      spinner.style.display = "none";
+    }
+  };
+
+  window.resetTracker = function () {
+    document.getElementById("trackInput").value = "";
+    document.getElementById("resultBox").style.display = "none";
+    document.getElementById("errorMsg").style.display = "none";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => document.getElementById("trackInput").focus(), 400);
+  };
+
+  // Enter key support
+  document.getElementById("trackInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") window.trackRequest();
+  });
+
+  // Pre-fill from URL ?id=
+  const urlId = new URLSearchParams(location.search).get("id");
+  if (urlId) {
+    document.getElementById("trackInput").value = urlId;
+    window.trackRequest();
+  }
+</script>
+</body>
+</html>
