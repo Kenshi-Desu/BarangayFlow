@@ -346,16 +346,14 @@ function refreshRequestFilterOptions() {
   const archivedOptions = [...new Set(allRequestsData.map(r => r.serviceType).filter(name => name && !catalogNames.has(name)))]
     .map(name => ({ value: `legacy:${name}`, label: `${name} (not in service list)` }));
   setRequestFilterOptions("reqServiceFilter", "All Services", [...catalogOptions, ...archivedOptions]);
-  setRequestFilterOptions("reqBarangayFilter", "All Barangays", allRequestsData.map(r => {
-    const resident = requestResidentsById.get(r.userId) || {};
-    const value = getResidentBarangay({ address: r.address || resident.address });
-    return { value, label: value };
-  }));
   setRequestFilterOptions(
     "reqSectorFilter",
     "All Resident Sectors",
-    allRequestsData.flatMap(r => getResidentSectors(requestResidentsById.get(r.userId) || {})
-      .map(value => ({ value, label: value })))
+    [
+      ...RESIDENT_SECTOR_OPTIONS.map(value => ({ value, label: value })),
+      ...allRequestsData.flatMap(r => getResidentSectors(requestResidentsById.get(r.userId) || {})
+        .map(value => ({ value, label: value })))
+    ]
   );
 }
 
@@ -401,13 +399,23 @@ function renderRequestsPage() {
   const start = (reqCurrentPage - 1) * REQ_PAGE_SIZE;
   const paginated = reqFilteredData.slice(start, start + REQ_PAGE_SIZE);
   el.innerHTML = paginated.map(r => {
+    const resident = requestResidentsById.get(r.userId) || {};
     const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString("en-PH") : "—";
-    return `<div class="row">
-      <span class="mono">${r.id.slice(0,8)}</span>
-      <span>${r.fullName || "N/A"}</span>
-      <span>${r.serviceType || "—"}</span>
-      <span>${date}</span>
-      <span class="status ${getStatusClass(r.status)}"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"4\" cy=\"4\" r=\"4\" fill=\"currentColor\"/></svg>${r.status || "—"}</span>
+    const fullName = r.fullName || [resident.firstName, resident.middleName, resident.lastName].filter(Boolean).join(" ") || "N/A";
+    const address = r.address || resident.address || "—";
+    const sector = getResidentSectors(resident).join(", ") || "—";
+    const contact = r.contact || resident.phone || "—";
+    const documentStatus = getRequestDocumentStatus(r);
+    return `<div class="row req-grid">
+      <span class="mono" title="${escapeHtmlText(r.id)}">${escapeHtmlText(r.id.slice(0,8))}</span>
+      <span title="${escapeHtmlText(fullName)}">${escapeHtmlText(fullName)}</span>
+      <span title="${escapeHtmlText(r.serviceType || "")}">${escapeHtmlText(r.serviceType || "—")}</span>
+      <span title="${escapeHtmlText(sector)}">${escapeHtmlText(sector)}</span>
+      <span title="${escapeHtmlText(contact)}">${escapeHtmlText(contact)}</span>
+      <span title="${escapeHtmlText(address)}">${escapeHtmlText(address)}</span>
+      <span>${escapeHtmlText(date)}</span>
+      <span class="status ${getStatusClass(r.status)}"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"4\" cy=\"4\" r=\"4\" fill=\"currentColor\"/></svg>${escapeHtmlText(r.status || "—")}</span>
+      <span>${escapeHtmlText(documentStatus)}</span>
       <span><button class="action-btn" onclick="openRequestModal('${r.id}')">View / Update</button></span>
     </div>`;
   }).join("");
@@ -605,11 +613,8 @@ window.filterRequests = () => {
   const search = (document.getElementById("reqSearch")?.value || "").trim().toLowerCase();
   const statusF = document.getElementById("reqStatusFilter")?.value || "all";
   const serviceF = document.getElementById("reqServiceFilter")?.value || "";
-  const barangayF = document.getElementById("reqBarangayFilter")?.value || "";
   const sectorF = document.getElementById("reqSectorFilter")?.value || "";
-  const verificationF = document.getElementById("reqVerificationFilter")?.value || "";
-  const dateFrom = document.getElementById("reqDateFrom")?.value || "";
-  const dateTo = document.getElementById("reqDateTo")?.value || "";
+  const dateF = document.getElementById("reqDate")?.value || "";
   const filtered = allRequestsData.filter(r => {
     const resident = requestResidentsById.get(r.userId) || {};
     const searchText = [
@@ -626,18 +631,13 @@ window.filterRequests = () => {
     const matchService = !serviceF || (serviceF.startsWith("legacy:")
       ? r.serviceType === serviceF.slice("legacy:".length)
       : r.serviceId === serviceF || (!!selectedService && r.serviceType === selectedService.name));
-    const matchBarangay = !barangayF
-      || getResidentBarangay({ address: r.address || resident.address }) === barangayF;
     const matchSector = !sectorF || getResidentSectors(resident).includes(sectorF);
-    const matchVerification = !verificationF || getRequestDocumentStatus(r) === verificationF;
     const requestDate = r.createdAt?.toDate ? r.createdAt.toDate() : null;
     const dateValue = requestDate
       ? `${requestDate.getFullYear()}-${String(requestDate.getMonth() + 1).padStart(2, "0")}-${String(requestDate.getDate()).padStart(2, "0")}`
       : "";
-    const matchDateFrom = !dateFrom || (dateValue && dateValue >= dateFrom);
-    const matchDateTo = !dateTo || (dateValue && dateValue <= dateTo);
-    return matchSearch && matchStatus && matchService && matchBarangay
-      && matchSector && matchVerification && matchDateFrom && matchDateTo;
+    const matchDate = !dateF || dateValue === dateF;
+    return matchSearch && matchStatus && matchService && matchSector && matchDate;
   });
   reqFilteredData = filtered;
   reqCurrentPage = 1;
@@ -647,11 +647,11 @@ window.filterRequests = () => {
 };
 
 window.clearRequestFilters = () => {
-  ["reqSearch", "reqDateFrom", "reqDateTo"].forEach(id => {
+  ["reqSearch", "reqDate"].forEach(id => {
     const input = document.getElementById(id);
     if (input) input.value = "";
   });
-  ["reqServiceFilter", "reqBarangayFilter", "reqSectorFilter", "reqVerificationFilter"].forEach(id => {
+  ["reqServiceFilter", "reqSectorFilter"].forEach(id => {
     const select = document.getElementById(id);
     if (select) select.value = "";
   });
@@ -1858,25 +1858,81 @@ function renderUserGroup(containerId, paginationId, items, page, renderFn, empty
   buildPagination(containerId, paginationId, p, totalPages, changeFn);
 }
 
+function renderPendingProfileChange(user) {
+  const request = user.profileChangeRequest;
+  const uid = escapeHtmlText(user.id);
+  const fullName = value => [value.firstName, value.middleName, value.lastName].filter(Boolean).join(" ");
+  const sectors = value => (Array.isArray(value.sector) ? value.sector : value.sector ? [value.sector] : []).join(", ");
+  const rows = [
+    ["Full Name", fullName(user), fullName(request)],
+    ["Gender", user.gender, request.gender],
+    ["Civil Status", user.civilStatus, request.civilStatus],
+    ["Date of Birth", user.birthDate, request.birthDate],
+    ["Place of Birth", user.placeOfBirth, request.placeOfBirth],
+    ["Sector", sectors(user), sectors(request)],
+    ["Mobile", user.phone, request.phone],
+    ["Landline", user.landline, request.landline],
+    ["Address", user.address, request.address]
+  ];
+  const details = rows.map(([label, current, proposed]) =>
+    `<div class="profile-change-row">
+       <strong>${escapeHtmlText(label)}</strong>
+       <span>${escapeHtmlText(current) || "—"}</span>
+       <span>${escapeHtmlText(proposed) || "—"}</span>
+     </div>`
+  ).join("");
+  const idUrl = escapeHtmlText(request.idPhotoUrl || "");
+  const isPdf = /\.pdf($|\?)/i.test(request.idPhotoUrl || "");
+  const idPreview = idUrl
+    ? `<div class="profile-change-id">
+         ${isPdf
+           ? `<span>PDF: ${escapeHtmlText(request.idFileName || "Replacement ID")}</span>`
+           : `<img src="${idUrl}" alt="Replacement ID for ${escapeHtmlText(fullName(user))}">`}
+         <a href="${idUrl}" target="_blank" rel="noopener noreferrer">Open replacement ID</a>
+       </div>`
+    : `<p class="profile-change-error">No replacement ID was attached to this request.</p>`;
+  return `<article class="profile-change-card" id="profile-change-${uid}">
+    <div class="profile-change-header">
+      <div>
+        <h5>${escapeHtmlText(fullName(user) || user.email || "Resident")}</h5>
+        <p>${escapeHtmlText(user.email || user.id)} · Profile update awaiting approval</p>
+      </div>
+      <span class="role-badge" style="background:#fef3c7;color:#92400e;">Pending</span>
+    </div>
+    <div class="profile-change-table">
+      <div class="profile-change-row profile-change-labels"><strong>Field</strong><strong>Current approved</strong><strong>Requested</strong></div>
+      ${details}
+    </div>
+    ${idPreview}
+    <div class="profile-change-actions">
+      <button type="button" class="action-btn primary-btn" onclick="approveResidentProfileChange('${uid}')">Approve Update</button>
+      <button type="button" class="action-btn btn-danger" onclick="rejectResidentProfileChange('${uid}')">Reject Update</button>
+      <span id="profile-change-message-${uid}" role="status"></span>
+    </div>
+  </article>`;
+}
+
 const renderResidentCard = u => {
+  const isProfileUpdatePending = u.profileChangeRequest?.status === "pending";
   const isPending = u.accountStatus === "pending_verification";
+  const needsReview = isPending || isProfileUpdatePending;
   const isRejected = u.accountStatus === "rejected";
   const sectorBadges = getResidentSectors(u).map(sector =>
     `<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 8px;border-radius:12px;background:#eef2ff;color:#3730a3;font-size:11px;">${escapeHtmlText(sector)}</span>`
   ).join("");
-  const badge = isPending
-    ? `<span class="role-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;cursor:pointer;" onclick="openResidentReview('${u.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span style="vertical-align:middle;">Pending — Review</span></span>`
+  const badge = needsReview
+    ? `<span class="role-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;cursor:pointer;" onclick="openResidentReview('${u.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span style="vertical-align:middle;">${isProfileUpdatePending ? "Profile Update — Review" : "Pending — Review"}</span></span>`
     : isRejected
     ? `<span class="role-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> <span style="vertical-align:middle;">Rejected</span></span>`
     : `<span class="role-badge role-resident"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg> <span style="vertical-align:middle;">Verified</span></span>`;
-  const reviewBtn = isPending
+  const reviewBtn = needsReview
     ? `<button onclick="openResidentReview('${u.id}')"
               style="margin-top:8px;padding:6px 14px;background:#1a2cff;color:#fff;
                      border:none;border-radius:6px;font-size:12px;font-weight:600;
                      cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <span style="vertical-align:middle;">Review Details &amp; ID</span>
        </button>` : "";
-  return `<div class="user-card" style="${isPending ? "border-left:3px solid #f59e0b;" : isRejected ? "border-left:3px solid #ef4444;opacity:.75;" : ""}">
+  return `<div class="user-card" style="${needsReview ? "border-left:3px solid #f59e0b;" : isRejected ? "border-left:3px solid #ef4444;opacity:.75;" : ""}">
     <div class="user-info">
       <strong>${u.firstName ? [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" ") : (u.email||"Unknown")}</strong>
       <small>${u.email||u.id}</small>
@@ -1932,6 +1988,66 @@ window.searchResidents = value => {
   usersResidentSearch = value;
   window._pgResidents(1);
 };
+
+window.approveResidentProfileChange = async uid => {
+  const message = document.getElementById(`profile-change-message-${uid}`);
+  const card = document.getElementById(`profile-change-${uid}`);
+  if (message) message.textContent = "Applying approved changes…";
+  card?.querySelectorAll("button").forEach(button => { button.disabled = true; });
+  try {
+    const userRef = doc(db, "users", uid);
+    const residentSnap = await getDoc(userRef);
+    if (!residentSnap.exists()) throw new Error("Resident record was not found.");
+    const request = residentSnap.data().profileChangeRequest;
+    if (request?.status !== "pending") throw new Error("This profile update is no longer pending.");
+    const {
+      firstName, middleName, lastName, gender, civilStatus, birthDate,
+      placeOfBirth, phone, landline, address, sector,
+      idPhotoUrl, idPhotoPublicId, idFileName
+    } = request;
+    await updateDoc(userRef, {
+      firstName, middleName, lastName, gender, civilStatus, birthDate,
+      placeOfBirth, phone, landline, address, sector,
+      idPhotoUrl, idPhotoPublicId, idFileName,
+      profileUpdatedAt: serverTimestamp(),
+      profileChangeReviewedAt: serverTimestamp(),
+      profileChangeRequest: deleteField()
+    });
+    if (typeof showToast === "function") showToast("Resident profile update approved.", "success");
+  } catch (err) {
+    console.error("Failed to approve resident profile update:", err);
+    if (message) message.textContent = err instanceof Error ? err.message : "Could not approve this update.";
+    card?.querySelectorAll("button").forEach(button => { button.disabled = false; });
+  }
+};
+
+window.rejectResidentProfileChange = async uid => {
+  const reason = prompt("Optional: Explain what the resident should correct. This note will be shown to them:");
+  if (reason === null) return;
+  const message = document.getElementById(`profile-change-message-${uid}`);
+  const card = document.getElementById(`profile-change-${uid}`);
+  if (message) message.textContent = "Rejecting update…";
+  card?.querySelectorAll("button").forEach(button => { button.disabled = true; });
+  try {
+    const userRef = doc(db, "users", uid);
+    const residentSnap = await getDoc(userRef);
+    if (!residentSnap.exists()) throw new Error("Resident record was not found.");
+    if (residentSnap.data().profileChangeRequest?.status !== "pending") {
+      throw new Error("This profile update is no longer pending.");
+    }
+    await updateDoc(userRef, {
+      "profileChangeRequest.status": "rejected",
+      "profileChangeRequest.rejectionReason": reason || "",
+      "profileChangeRequest.reviewedAt": serverTimestamp()
+    });
+    if (typeof showToast === "function") showToast("Resident profile update rejected.", "info");
+  } catch (err) {
+    console.error("Failed to reject resident profile update:", err);
+    if (message) message.textContent = err instanceof Error ? err.message : "Could not reject this update.";
+    card?.querySelectorAll("button").forEach(button => { button.disabled = false; });
+  }
+};
+
 window._pgStaff     = p => { usersStaffPage    = p; renderUserGroup("staffList",    "pg-staff",    usersAllStaff,    p,renderStaffCard,   "No staff accounts found.","window._pgStaff"); };
 window._pgAdmins    = p => { usersAdminPage    = p; renderUserGroup("adminList",    "pg-admins",   usersAllAdmins,   p,renderStaffCard,   "No admin accounts.",     "window._pgAdmins"); };
 window._pgIt        = p => { usersItPage       = p; renderUserGroup("itList",       "pg-it",       usersAllIt,       p,renderStaffCard,   "No IT accounts.",        "window._pgIt"); };
@@ -1945,9 +2061,21 @@ function loadUsers() {
 
   function renderAll() {
     if (++resolved < 2) return;
-    const pendingCount = usersAllResidents.filter(u => u.accountStatus === "pending_verification").length;
+    const pendingCount = usersAllResidents.filter(u =>
+      u.accountStatus === "pending_verification" || u.profileChangeRequest?.status === "pending"
+    ).length;
     const pendingBadge = pendingCount > 0
       ? `<span class="user-count" style="background:#f59e0b;color:#fff;margin-left:6px;">${pendingCount} pending</span>`
+      : "";
+    const pendingProfileChanges = usersAllResidents.filter(user =>
+      user.profileChangeRequest?.status === "pending"
+    );
+    const pendingProfileChangesHtml = pendingProfileChanges.length
+      ? `<section class="profile-change-queue" aria-labelledby="profileChangeQueueTitle">
+           <h4 id="profileChangeQueueTitle" class="user-group-title">Profile Updates Awaiting Approval <span class="user-count">${pendingProfileChanges.length}</span></h4>
+           <p class="section-note">Review the resident’s current information, requested changes, and replacement ID before approval.</p>
+           ${pendingProfileChanges.map(renderPendingProfileChange).join("")}
+         </section>`
       : "";
     const residentSectors = [...new Set([
       ...RESIDENT_SECTOR_OPTIONS,
@@ -1977,6 +2105,7 @@ function loadUsers() {
       `<option value="${escapeHtmlText(status)}"${status === usersResidentCivilStatusFilter ? " selected" : ""}>${escapeHtmlText(status)}</option>`
     ).join("");
     el.innerHTML = `
+      ${pendingProfileChangesHtml}
       <div class="user-group">
         <h4 class="user-group-title">Residents <span class="user-count">${usersAllResidents.length}</span>${pendingBadge}</h4>
         ${pendingCount > 0 ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400e;">
@@ -2010,7 +2139,7 @@ function loadUsers() {
     window._pgResidents(1); window._pgStaff(1); window._pgAdmins(1); window._pgIt(1);
   }
 
-  const u1 = onSnapshot(collection(db, "users"),  snap => { usersAllResidents = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b) => (a.accountStatus==="pending_verification"?-1:1) - (b.accountStatus==="pending_verification"?-1:1)); usersResidentPage=1; renderAll(); });
+  const u1 = onSnapshot(collection(db, "users"),  snap => { usersAllResidents = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b) => ((a.accountStatus==="pending_verification"||a.profileChangeRequest?.status==="pending")?-1:1) - ((b.accountStatus==="pending_verification"||b.profileChangeRequest?.status==="pending")?-1:1)); usersResidentPage=1; renderAll(); });
   const u2 = onSnapshot(collection(db, "admins"), snap => { const all=snap.docs.map(d=>({id:d.id,...d.data()})); usersAllStaff=all.filter(u=>u.role==="staff"); usersAllAdmins=all.filter(u=>u.role==="admin"); usersAllIt=all.filter(u=>u.role==="it"); usersStaffPage=usersAdminPage=usersItPage=1; renderAll(); });
   unsubscribers.push(u1, u2);
 }
@@ -2019,15 +2148,34 @@ function loadUsers() {
 // RESIDENT ID VERIFICATION MODAL
 // =====================================================================
 let _rrCurrentUid = null;
+let _rrIsProfileUpdate = false;
 
 window.openResidentReview = function(uid) {
   const u = usersAllResidents.find(r => r.id === uid);
   if (!u) return;
   _rrCurrentUid = uid;
+  const profileRequest = u.profileChangeRequest?.status === "pending" ? u.profileChangeRequest : null;
+  _rrIsProfileUpdate = Boolean(profileRequest);
 
   const overlay = document.getElementById("residentReviewOverlay");
   const body    = document.getElementById("residentReviewBody");
   if (!overlay || !body) return;
+  const title = document.getElementById("residentReviewTitle");
+  const subtitle = document.getElementById("residentReviewSubtitle");
+  if (title) title.textContent = profileRequest ? "Resident Profile Update Review" : "Resident Registration Review";
+  if (subtitle) subtitle.textContent = profileRequest
+    ? "Compare the approved information with the requested changes and review the replacement ID"
+    : "Verify the details, resident sectors, and ID before approving";
+  const approveBtn = document.getElementById("rrApproveBtn");
+  const rejectBtn = document.getElementById("rrRejectBtn");
+  if (approveBtn) {
+    approveBtn.disabled = false;
+    approveBtn.textContent = profileRequest ? "Approve Profile Update" : "Approve Account";
+  }
+  if (rejectBtn) {
+    rejectBtn.disabled = false;
+    rejectBtn.textContent = profileRequest ? "Reject Profile Update" : "Reject Account";
+  }
 
   const registeredAt = u.createdAt?.toDate
     ? u.createdAt.toDate().toLocaleString("en-PH", { timeZone:"Asia/Manila", dateStyle:"medium", timeStyle:"short" })
@@ -2047,29 +2195,32 @@ window.openResidentReview = function(uid) {
        <span style="font-size:13px;color:#111827;word-break:break-word;">${escapeHtml(value) || "—"}</span>
      </div>`;
 
-  const idSection = u.idPhotoUrl
+  const reviewIdUrl = profileRequest?.idPhotoUrl || u.idPhotoUrl;
+  const reviewIdFileName = profileRequest?.idFileName || u.idFileName;
+  const safeReviewIdUrl = escapeHtml(reviewIdUrl);
+  const idSection = reviewIdUrl
     ? `<div style="margin-top:16px;">
-         <p style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px;margin:0 0 8px;">Submitted Government ID</p>
+         <p style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px;margin:0 0 8px;">${profileRequest ? "Replacement Government ID" : "Submitted Government ID"}</p>
          <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#f9fafb;">
-           ${u.idPhotoUrl.match(/\.pdf($|\?)/i)
+           ${reviewIdUrl.match(/\.pdf($|\?)/i)
              ? `<div style="padding:20px;text-align:center;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  <p style="font-size:13px;color:#374151;margin:8px 0 0;">${u.idFileName || "ID Document.pdf"}</p>
-                  <a href="${u.idPhotoUrl}" target="_blank"
+                  <p style="font-size:13px;color:#374151;margin:8px 0 0;">${escapeHtml(reviewIdFileName || "ID Document.pdf")}</p>
+                  <a href="${safeReviewIdUrl}" target="_blank" rel="noopener noreferrer"
                      style="display:inline-block;margin-top:8px;padding:8px 16px;background:#2563eb;color:#fff;
                             border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> <span style="vertical-align:middle;">Open PDF</span>
                   </a>
                 </div>`
-             : `<img src="${u.idPhotoUrl}" alt="Government ID"
+             : `<img src="${safeReviewIdUrl}" alt="Government ID"
                      style="width:100%;max-height:280px;object-fit:contain;display:block;padding:12px;"
                      onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
                 <div style="display:none;padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Image could not be loaded.
-                  <br><a href="${u.idPhotoUrl}" target="_blank" style="color:#2563eb;"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> <span style="vertical-align:middle;">Open directly</span></a>
+                  <br><a href="${safeReviewIdUrl}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> <span style="vertical-align:middle;">Open directly</span></a>
                 </div>
                 <div style="padding:8px 12px;background:#f3f4f6;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
-                  <span style="font-size:11px;color:#6b7280;">${u.idFileName || "ID Photo"}</span>
-                  <a href="${u.idPhotoUrl}" target="_blank"
+                  <span style="font-size:11px;color:#6b7280;">${escapeHtml(reviewIdFileName || "ID Photo")}</span>
+                  <a href="${safeReviewIdUrl}" target="_blank" rel="noopener noreferrer"
                      style="font-size:11px;color:#2563eb;font-weight:600;text-decoration:none;"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> <span style="vertical-align:middle;">Open full size</span></a>
                 </div>`
            }
@@ -2081,18 +2232,42 @@ window.openResidentReview = function(uid) {
 
   body.innerHTML = `
     <div style="margin-bottom:4px;">
-      ${row("Full Name", [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" "))}
-      ${row("Gender", u.gender)}
-      ${row("Civil Status", u.civilStatus)}
-      ${row("Date of Birth", u.birthDate)}
-      ${row("Place of Birth", u.placeOfBirth)}
-      ${row("Resident Sector", getResidentSectors(u).join(", "))}
+      ${profileRequest ? `
+        <h4 style="margin:0 0 6px;font-size:13px;color:#374151;">Currently Approved Information</h4>
+        ${row("Full Name", [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" "))}
+        ${row("Gender", u.gender)}
+        ${row("Civil Status", u.civilStatus)}
+        ${row("Date of Birth", u.birthDate)}
+        ${row("Place of Birth", u.placeOfBirth)}
+        ${row("Resident Sector", getResidentSectors(u).join(", "))}
+        ${row("Mobile", u.phone)}
+        ${row("Landline", u.landline)}
+        ${row("Address", u.address)}
+        <h4 style="margin:16px 0 6px;font-size:13px;color:#92400e;">Requested Information</h4>
+        ${row("Full Name", [profileRequest.firstName, profileRequest.middleName, profileRequest.lastName].filter(Boolean).join(" "))}
+        ${row("Gender", profileRequest.gender)}
+        ${row("Civil Status", profileRequest.civilStatus)}
+        ${row("Date of Birth", profileRequest.birthDate)}
+        ${row("Place of Birth", profileRequest.placeOfBirth)}
+        ${row("Resident Sector", (profileRequest.sector || []).join(", "))}
+        ${row("Mobile", profileRequest.phone)}
+        ${row("Landline", profileRequest.landline)}
+        ${row("Address", profileRequest.address)}
+      ` : `
+        ${row("Full Name", [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" "))}
+        ${row("Gender", u.gender)}
+        ${row("Civil Status", u.civilStatus)}
+        ${row("Date of Birth", u.birthDate)}
+        ${row("Place of Birth", u.placeOfBirth)}
+        ${row("Resident Sector", getResidentSectors(u).join(", "))}
+        ${row("Mobile", u.phone)}
+        ${row("Landline", u.landline)}
+        ${row("Address", u.address)}
+      `}
       ${row("Email", u.email)}
-      ${row("Mobile", u.phone)}
-      ${row("Landline", u.landline)}
-      ${row("Address", u.address)}
       ${row("Registered", registeredAt)}
       ${row("Email Verified", u.emailVerified ? "Yes" : "No")}
+      ${profileRequest ? row("Update Submitted", profileRequest.submittedAt?.toDate ? profileRequest.submittedAt.toDate().toLocaleString("en-PH", { timeZone:"Asia/Manila", dateStyle:"medium", timeStyle:"short" }) : "—") : ""}
     </div>
     ${idSection}`;
 
@@ -2105,43 +2280,93 @@ window.closeResidentReview = function() {
   if (overlay) overlay.style.display = "none";
   document.body.style.overflow = "";
   _rrCurrentUid = null;
+  _rrIsProfileUpdate = false;
 };
 
 window.rrDoApprove = async function() {
   if (!_rrCurrentUid) return;
   const btn = document.getElementById("rrApproveBtn");
   if (btn) { btn.disabled = true; btn.textContent = "Approving…"; }
+  let approvedProfileUpdate = false;
   try {
-    await updateDoc(doc(db, "users", _rrCurrentUid), {
-      active: true,
-      accountStatus: "verified",
-      verifiedAt: serverTimestamp()
-    });
+    const userRef = doc(db, "users", _rrCurrentUid);
+    const residentSnap = await getDoc(userRef);
+    if (!residentSnap.exists()) throw new Error("Resident record was not found.");
+    const resident = residentSnap.data();
+    const profileRequest = resident.profileChangeRequest;
+    if (profileRequest?.status === "pending") {
+      approvedProfileUpdate = true;
+      const {
+        firstName, middleName, lastName, gender, civilStatus, birthDate,
+        placeOfBirth, phone, landline, address, sector,
+        idPhotoUrl, idPhotoPublicId, idFileName
+      } = profileRequest;
+      await updateDoc(userRef, {
+        firstName, middleName, lastName, gender, civilStatus, birthDate,
+        placeOfBirth, phone, landline, address, sector,
+        idPhotoUrl, idPhotoPublicId, idFileName,
+        profileUpdatedAt: serverTimestamp(),
+        profileChangeReviewedAt: serverTimestamp(),
+        profileChangeRequest: deleteField()
+      });
+    } else if (resident.accountStatus === "pending_verification") {
+      await updateDoc(userRef, {
+        active: true,
+        accountStatus: "verified",
+        verifiedAt: serverTimestamp()
+      });
+    } else {
+      throw new Error("This review is no longer pending. Reload the resident list and review again.");
+    }
     closeResidentReview();
-    if (typeof showToast === "function") showToast("Resident account approved. They can now log in.", "success");
+    if (typeof showToast === "function") {
+      showToast(approvedProfileUpdate
+        ? "Resident profile update and replacement ID approved."
+        : "Resident account approved. They can now log in.", "success");
+    }
   } catch (err) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg> <span style=\"vertical-align:middle;\">Approve Account</span>'; }
+    if (btn) { btn.disabled = false; btn.textContent = _rrIsProfileUpdate ? "Approve Profile Update" : "Approve Account"; }
     alert("Failed to approve: " + err.message);
   }
 };
 
 window.rrDoReject = async function() {
   if (!_rrCurrentUid) return;
-  const reason = prompt("Optional: Enter an internal note for this rejection (not shown to resident):");
+  const reason = prompt(_rrIsProfileUpdate
+    ? "Optional: Explain what the resident should correct. This note will be shown to them:"
+    : "Optional: Enter an internal note for this rejection (not shown to resident):");
   if (reason === null) return;
   const btn = document.getElementById("rrRejectBtn");
   if (btn) { btn.disabled = true; btn.textContent = "Rejecting…"; }
   try {
-    await updateDoc(doc(db, "users", _rrCurrentUid), {
-      active: false,
-      accountStatus: "rejected",
-      rejectionReason: reason || "",
-      rejectedAt: serverTimestamp()
-    });
+    const userRef = doc(db, "users", _rrCurrentUid);
+    const residentSnap = await getDoc(userRef);
+    if (!residentSnap.exists()) throw new Error("Resident record was not found.");
+    const latestResident = residentSnap.data();
+    if (latestResident.profileChangeRequest?.status === "pending") {
+      await updateDoc(userRef, {
+        "profileChangeRequest.status": "rejected",
+        "profileChangeRequest.rejectionReason": reason || "",
+        "profileChangeRequest.reviewedAt": serverTimestamp()
+      });
+    } else if (latestResident.accountStatus === "pending_verification") {
+      await updateDoc(userRef, {
+        active: false,
+        accountStatus: "rejected",
+        rejectionReason: reason || "",
+        rejectedAt: serverTimestamp()
+      });
+    } else {
+      throw new Error("This review is no longer pending. Reload the resident list and review again.");
+    }
     closeResidentReview();
-    if (typeof showToast === "function") showToast("Resident account rejected.", "info");
+    if (typeof showToast === "function") {
+      showToast(latestResident.profileChangeRequest?.status === "pending"
+        ? "Resident profile update rejected. The resident can correct and resubmit it."
+        : "Resident account rejected.", "info");
+    }
   } catch (err) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> <span style=\"vertical-align:middle;\">Reject Account</span>'; }
+    if (btn) { btn.disabled = false; btn.textContent = _rrIsProfileUpdate ? "Reject Profile Update" : "Reject Account"; }
     alert("Failed to reject: " + err.message);
   }
 };
