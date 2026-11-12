@@ -7,6 +7,14 @@ import {
 import {
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  isKioskRequest,
+  isKioskCompleted,
+  subscribeKioskCollection,
+  mergeAndSortKioskRequests,
+  renderKioskTableView,
+  bindDoneRequestHandler
+} from "./kiosk-view.js";
 
 // ── Back/forward cache guard ─────────────────────────────────────────────────
 // Fires when page is restored from bfcache (browser back after logout).
@@ -32,6 +40,14 @@ let editingAnnouncementId = null;
 const REQ_PAGE_SIZE = 8;
 let reqCurrentPage = 1;
 let reqFilteredData = [];
+
+// State for read-only kiosk lookup section
+const KIOSK_PAGE_SIZE = 10;
+let kioskCurrentPage = 1;
+let completedKioskPage = 1;
+let kioskCollectionRequests = [];
+let kioskLegacyRequests = [];
+let kioskSearchBound = false;
 
 // Pagination for users section
 const USERS_PAGE_SIZE = 8;
@@ -160,6 +176,7 @@ window.showSection = (name) => {
     users: loadUsers,
     announcements: loadAnnouncements,
     requests: loadAllRequests,
+    kiosk: loadKioskSection,
   };
   if (loaders[name]) loaders[name]();
 };
@@ -175,6 +192,7 @@ function loadDashboard() {
     let statusCounts = {}, serviceCounts = {}, monthlyCounts = {};
     snap.forEach(d => {
       const r = d.data();
+      if (isKioskRequest(r)) return;
       total++;
       const status = (r.status || "").trim();
       if (status === "Pending") pending++;
@@ -270,13 +288,24 @@ function loadAllRequests() {
   el.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading...</div>`;
   const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
   const unsub = onSnapshot(q, (snap) => {
-    allRequestsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    kioskLegacyRequests = docs.filter(isKioskRequest);
+    allRequestsData = docs.filter(r => !isKioskRequest(r));
     refreshRequestFilterOptions();
     renderRequestSummaryCards();
     window.filterRequests();
   }, err => {
     console.error("Failed to load requests:", err);
     showToast("Failed to load requests.", "error");
+  });
+  const kioskUnsub = subscribeKioskCollection({
+    onData: (docs) => {
+      kioskCollectionRequests = docs;
+      completedKioskPage = 1;
+      renderRequestSummaryCards();
+      window.filterRequests();
+    },
+    onError: () => { /* handled cleanly in Kiosk Requests tab */ }
   });
   const residentsUnsub = onSnapshot(collection(db, "users"), snap => {
     requestResidentsById = new Map(snap.docs.map(d => [d.id, d.data()]));
@@ -293,7 +322,7 @@ function loadAllRequests() {
     console.error("Failed to load services for request filters:", err);
     showToast("Could not load service options for request filters.", "error");
   });
-  unsubscribers.push(unsub, residentsUnsub, servicesUnsub);
+  unsubscribers.push(unsub, kioskUnsub, residentsUnsub, servicesUnsub);
 }
 
 function setRequestFilterOptions(id, defaultLabel, values) {
@@ -344,9 +373,12 @@ function renderRequestSummaryCards() {
     const docStatus = getRequestDocumentStatus(request);
     if (Object.prototype.hasOwnProperty.call(docCounts, docStatus)) docCounts[docStatus]++;
   });
+  const completedKioskCount = mergeAndSortKioskRequests(kioskCollectionRequests, kioskLegacyRequests)
+    .filter(isKioskCompleted).length;
   const cards = [
     { label: "Total Requests", count: allRequestsData.length, style: "highlight" },
     ...requestStatuses.map(label => ({ label, count: counts[label] })),
+    { label: "Kiosk Completed", count: completedKioskCount },
     ...documentStatuses.map(label => ({ label: `Documents ${label}`, count: docCounts[label] }))
   ];
   container.innerHTML = cards.map(card =>
@@ -390,32 +422,192 @@ function renderRequestsPage() {
   renderReqPagination(totalPages);
 }
 
+function renderPaginationBar(pg, currentPage, totalPages, handlerName) {
+  if (!pg) return;
+  if (totalPages <= 1) { pg.innerHTML = ""; return; }
+  const maxVisible = 5;
+  let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let end = Math.min(totalPages, start + maxVisible - 1);
+  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+  let html = `<button class="pg-btn pg-nav" ${currentPage===1?"disabled":""} onclick="${handlerName}(${currentPage-1})" aria-label="Previous">‹</button>`;
+  if (start > 1) html += `<button class="pg-btn" onclick="${handlerName}(1)">1</button>${start > 2 ? `<span class="pg-ellipsis">…</span>` : ""}`;
+  for (let i = start; i <= end; i++) {
+    html += `<button class="pg-btn${i===currentPage?" pg-active":""}" onclick="${handlerName}(${i})">${i}</button>`;
+  }
+  if (end < totalPages) html += `${end < totalPages - 1 ? `<span class="pg-ellipsis">…</span>` : ""}<button class="pg-btn" onclick="${handlerName}(${totalPages})">${totalPages}</button>`;
+  html += `<button class="pg-btn pg-nav" ${currentPage===totalPages?"disabled":""} onclick="${handlerName}(${currentPage+1})" aria-label="Next">›</button>`;
+  html += `<span class="pg-info">${currentPage} / ${totalPages}</span>`;
+  pg.innerHTML = html;
+}
+
 function renderReqPagination(totalPages) {
   let pg = document.getElementById("reqPagination");
   if (!pg) {
     pg = document.createElement("div");
     pg.id = "reqPagination";
     pg.className = "pagination-bar";
-    const tableEl = document.getElementById("requestsTableBody");
-    if (tableEl?.parentNode) tableEl.parentNode.insertAdjacentElement("afterend", pg);
+    const onlineWrap = document.getElementById("adminOnlineRequestsWrap");
+    if (onlineWrap) onlineWrap.appendChild(pg);
   }
-  if (totalPages <= 1) { pg.innerHTML = ""; return; }
-  const maxVisible = 5;
-  let start = Math.max(1, reqCurrentPage - Math.floor(maxVisible / 2));
-  let end = Math.min(totalPages, start + maxVisible - 1);
-  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-  let html = `<button class="pg-btn pg-nav" ${reqCurrentPage===1?"disabled":""} onclick="window._reqChangePage(${reqCurrentPage-1})" aria-label="Previous">‹</button>`;
-  if (start > 1) html += `<button class="pg-btn" onclick="window._reqChangePage(1)">1</button>${start > 2 ? `<span class="pg-ellipsis">…</span>` : ""}`;
-  for (let i = start; i <= end; i++) {
-    html += `<button class="pg-btn${i===reqCurrentPage?" pg-active":""}" onclick="window._reqChangePage(${i})">${i}</button>`;
-  }
-  if (end < totalPages) html += `${end < totalPages - 1 ? `<span class="pg-ellipsis">…</span>` : ""}<button class="pg-btn" onclick="window._reqChangePage(${totalPages})">${totalPages}</button>`;
-  html += `<button class="pg-btn pg-nav" ${reqCurrentPage===totalPages?"disabled":""} onclick="window._reqChangePage(${reqCurrentPage+1})" aria-label="Next">›</button>`;
-  html += `<span class="pg-info">${reqCurrentPage} / ${totalPages}</span>`;
-  pg.innerHTML = html;
+  renderPaginationBar(pg, reqCurrentPage, totalPages, "window._reqChangePage");
 }
 
 window._reqChangePage = (page) => { reqCurrentPage = page; renderRequestsPage(); };
+
+// =====================================================================
+// KIOSK REQUESTS — non-clickable rows + Done Request action
+// =====================================================================
+function renderAdminKioskTable() {
+  const search = document.getElementById("kioskSearchInput")?.value || "";
+  const combined = mergeAndSortKioskRequests(kioskCollectionRequests, kioskLegacyRequests);
+  const { totalPages, clampedPage } = renderKioskTableView({
+    tableEl: document.getElementById("kioskTable"),
+    countPillEl: document.getElementById("kioskCountPill"),
+    items: combined,
+    search,
+    page: kioskCurrentPage,
+    pageSize: KIOSK_PAGE_SIZE,
+    mode: "active",
+    countUnit: "Kiosk Request"
+  });
+  kioskCurrentPage = clampedPage;
+  renderPaginationBar(
+    document.getElementById("kioskPagination"),
+    kioskCurrentPage,
+    totalPages,
+    "window._kioskChangePage"
+  );
+}
+
+window._kioskChangePage = (page) => {
+  kioskCurrentPage = page;
+  renderAdminKioskTable();
+};
+
+function renderAdminCompletedKioskSection() {
+  const section = document.getElementById("adminCompletedKioskSection");
+  const onlineWrap = document.getElementById("adminOnlineRequestsWrap");
+  if (!section) return;
+
+  const categoryF = document.getElementById("reqCategoryFilter")?.value || "all";
+  const statusF = document.getElementById("reqStatusFilter")?.value || "all";
+  const search = document.getElementById("reqSearch")?.value || "";
+  const dateFrom = document.getElementById("reqDateFrom")?.value || "";
+  const dateTo = document.getElementById("reqDateTo")?.value || "";
+
+  if (onlineWrap) {
+    onlineWrap.style.display = categoryF === "kiosk" ? "none" : "block";
+  }
+
+  const statusAllowsCompleted = statusF === "all" || statusF === "Completed";
+  const categoryAllowsKiosk = categoryF === "all" || categoryF === "kiosk";
+  const showCompletedKiosk = statusAllowsCompleted && categoryAllowsKiosk;
+
+  section.style.display = showCompletedKiosk ? "block" : "none";
+  if (!showCompletedKiosk) return;
+
+  const combined = mergeAndSortKioskRequests(kioskCollectionRequests, kioskLegacyRequests)
+    .filter(r => {
+      if (!dateFrom && !dateTo) return true;
+      const dt = (r.completedAt || r.updatedAt || r.createdAt)?.toDate?.() || null;
+      if (!dt) return false;
+      const dateValue = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      if (dateFrom && dateValue < dateFrom) return false;
+      if (dateTo && dateValue > dateTo) return false;
+      return true;
+    });
+
+  const { totalPages, clampedPage } = renderKioskTableView({
+    tableEl: document.getElementById("completedKioskTable"),
+    countPillEl: document.getElementById("completedKioskCountPill"),
+    items: combined,
+    search,
+    page: completedKioskPage,
+    pageSize: KIOSK_PAGE_SIZE,
+    mode: "completed",
+    countUnit: "Completed"
+  });
+  completedKioskPage = clampedPage;
+  renderPaginationBar(
+    document.getElementById("completedKioskPagination"),
+    completedKioskPage,
+    totalPages,
+    "window._completedKioskChangePage"
+  );
+}
+
+window._completedKioskChangePage = (page) => {
+  completedKioskPage = page;
+  renderAdminCompletedKioskSection();
+};
+
+function loadKioskSection() {
+  const tableEl = document.getElementById("kioskTable");
+  const noticeBox = document.getElementById("kioskNoticeBox");
+  const searchEl = document.getElementById("kioskSearchInput");
+
+  bindDoneRequestHandler({
+    tableEl,
+    getUserEmail: () => auth.currentUser?.email || localStorage.getItem("adminUsername") || "admin",
+    onSuccess: (queueLabel) => {
+      showToast(`${queueLabel} marked as Completed and moved to Requests (Category: Kiosk).`, "success");
+    },
+    onError: (err) => {
+      console.error("[Admin Kiosk] Failed to complete request:", err);
+      showToast(
+        err?.code === "permission-denied"
+          ? "Permission denied. Please deploy the updated firestore.rules."
+          : "Failed to complete kiosk request. Please try again.",
+        "error"
+      );
+    }
+  });
+
+  if (!kioskSearchBound && searchEl) {
+    ["input", "search"].forEach(evtName => {
+      searchEl.addEventListener(evtName, () => {
+        kioskCurrentPage = 1;
+        renderAdminKioskTable();
+      });
+    });
+    kioskSearchBound = true;
+  }
+
+  if (tableEl) {
+    tableEl.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading...</div>`;
+  }
+
+  const kioskUnsub = subscribeKioskCollection({
+    onData: (docs) => {
+      if (noticeBox) {
+        noticeBox.style.display = "none";
+        noticeBox.textContent = "";
+      }
+      kioskCollectionRequests = docs;
+      kioskCurrentPage = 1;
+      renderAdminKioskTable();
+    },
+    onError: (err) => {
+      console.warn("[Admin Kiosk] Failed to listen to kioskRequests:", err?.code || err);
+      if (noticeBox) {
+        noticeBox.style.display = "block";
+        noticeBox.textContent = err?.code === "permission-denied"
+          ? "Firestore rules for 'kioskRequests' are not deployed yet. Run 'firebase deploy --only firestore:rules' so new kiosk submissions appear here."
+          : "Unable to load live kiosk queue right now. Please check your connection.";
+      }
+      renderAdminKioskTable();
+    }
+  });
+
+  const legacyUnsub = onSnapshot(collection(db, "requests"), (snap) => {
+    kioskLegacyRequests = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(isKioskRequest);
+    renderAdminKioskTable();
+  }, () => { /* silent fallback */ });
+
+  unsubscribers.push(kioskUnsub, legacyUnsub);
+}
 
 window.filterRequests = () => {
   const search = (document.getElementById("reqSearch")?.value || "").trim().toLowerCase();
@@ -449,7 +641,9 @@ window.filterRequests = () => {
   });
   reqFilteredData = filtered;
   reqCurrentPage = 1;
+  completedKioskPage = 1;
   renderRequestsPage();
+  renderAdminCompletedKioskSection();
 };
 
 window.clearRequestFilters = () => {
@@ -461,6 +655,8 @@ window.clearRequestFilters = () => {
     const select = document.getElementById(id);
     if (select) select.value = "";
   });
+  const category = document.getElementById("reqCategoryFilter");
+  if (category) category.value = "all";
   const status = document.getElementById("reqStatusFilter");
   if (status) status.value = "all";
   window.filterRequests();

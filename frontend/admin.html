@@ -28,8 +28,9 @@
 </button>
 
   <div class="nav-right">
-    <a href="#" id="nav-dash" class="active" onclick="showTab('dashboard')">Dashboard</a>
-    <a href="#" id="nav-ann" onclick="showTab('announcements')" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
+    <a href="#" id="nav-dash" class="active" onclick="showTab('dashboard'); return false;">Dashboard</a>
+    <a href="#" id="nav-kiosk" onclick="showTab('kiosk'); return false;">Kiosk Requests</a>
+    <a href="#" id="nav-ann" onclick="showTab('announcements'); return false;" style="position:relative;">Announcements<span id="annBadge" style="display:none;position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;line-height:16px;"></span></a>
     <a href="#" id="adminNav">Admin</a>
     <a href="#" onclick="logout(); return false;" style="display:inline-flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
   </div>
@@ -82,6 +83,11 @@
         <option value="Ready for Pickup">Ready for Pickup</option>
         <option value="Completed">Completed</option>
       </select>
+      <select id="categoryFilter" aria-label="Filter by Request Category">
+        <option value="all">Category: All</option>
+        <option value="online">Category: Online Requests</option>
+        <option value="kiosk">Category: Kiosk</option>
+      </select>
       <select id="serviceFilter">
         <option value="all">Filter: Service Type</option>
         <option value="indigency">Certificate of Indigency</option>
@@ -95,25 +101,81 @@
       </select>
     </div>
 
-    <div class="section-row">
-      <h3 id="tableTitle">All Requests</h3>
+    <div id="staffOnlineRequestsWrap">
+      <div class="section-row">
+        <h3 id="tableTitle">All Requests</h3>
+        <div id="pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-head">
+          <span>Request ID</span>
+          <span>Resident Name</span>
+          <span>Service Type</span>
+          <span>Submitted</span>
+          <span>Priority</span>
+          <span>Status</span>
+          <span>Assigned To</span>
+          <span>Actions</span>
+        </div>
+        <div id="adminTable"></div>
+      </div>
       <div id="pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
     </div>
 
-    <div class="table-container">
-      <div class="table-head">
-        <span>Request ID</span>
-        <span>Resident Name</span>
-        <span>Service Type</span>
-        <span>Submitted</span>
-        <span>Priority</span>
-        <span>Status</span>
-        <span>Assigned To</span>
-        <span>Actions</span>
+    <div id="staffCompletedKioskSection" class="completed-kiosk-section">
+      <div class="completed-kiosk-header">
+        <div>
+          <h3>Completed Requests <span class="kiosk-cat-badge">Category: Kiosk</span></h3>
+          <p class="completed-kiosk-sub">Kiosk requests marked as Done Request appear here.</p>
+        </div>
+        <span id="completedKioskCountPill" class="kiosk-count-pill">0 Completed</span>
       </div>
-      <div id="adminTable"></div>
+      <div class="table-container kiosk-table-container">
+        <div class="table-head kiosk-table-head">
+          <span>Queue / Ref</span>
+          <span>Applicant</span>
+          <span>Contact &amp; Address</span>
+          <span>Requested Document(s)</span>
+          <span>Purpose &amp; Details</span>
+          <span>Completed</span>
+        </div>
+        <div id="completedKioskTable"></div>
+      </div>
+      <div id="completedKioskPagination" class="kiosk-pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
     </div>
-    <div id="pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
+  </div>
+
+  <div id="tab-kiosk" style="display: none;">
+    <div class="admin-header">
+      <p>Barangay Staff Lookup &bull; Read-Only</p>
+      <h3>Kiosk Requests</h3>
+    </div>
+
+    <div class="kiosk-info-banner">
+      <span>Search pending walk-in &amp; self-service kiosk submissions by Queue No., Reference Code, Resident Name, Contact, Document, Address, or Purpose. Click <strong>Done Request</strong> once served to move it to Completed Requests (Category: Kiosk).</span>
+      <span id="kioskCountPill" class="kiosk-count-pill">0 Kiosk Requests</span>
+    </div>
+
+    <div class="filters">
+      <input id="kioskSearchInput" type="search" placeholder="Search kiosk requests by Queue No. (e.g. K-001), Reference, Name, Contact, Document, or Purpose..." autocomplete="off">
+    </div>
+
+    <div id="kioskNoticeBox" class="kiosk-notice-box" style="display: none;"></div>
+
+    <div class="table-container kiosk-table-container">
+      <div class="table-head kiosk-table-head has-action">
+        <span>Queue / Ref</span>
+        <span>Applicant</span>
+        <span>Contact &amp; Address</span>
+        <span>Requested Document(s)</span>
+        <span>Purpose &amp; Details</span>
+        <span>Submitted</span>
+        <span>Action</span>
+      </div>
+      <div id="kioskTable"></div>
+    </div>
+    <div id="kioskPagination" class="kiosk-pagination" style="margin-top:15px; display:flex; gap:5px;"></div>
   </div>
 
   <div id="tab-announcements" style="display: none;">
